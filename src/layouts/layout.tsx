@@ -1,26 +1,19 @@
-import React, { useState } from "react";
-import type {ReactNode} from "react";
-import "./Layout.css";
+import { Outlet } from "react-router-dom";
+import { Header } from "../components/header/header";
+import { useState } from "react";
+import "./layout.css";
 
-interface LayoutProps {
-  children: ReactNode;
-}
-
-const Layout: React.FC<LayoutProps> = ({ children }) => {
+export default function Layout() {
   const [isSidebarOpen, setSidebarOpen] = useState(true);
 
   const toggleSidebar = () => setSidebarOpen(!isSidebarOpen);
 
   return (
     <div className="layout">
-      <header className="layout-topbar">
-         <button className={`hamburger ${isSidebarOpen ? "open" : ""}`} onClick={toggleSidebar}>
-          <span></span>
-          <span></span>
-          <span></span>
-        </button>
-        <h1>Header</h1>
-      </header>
+      <Header
+        isSidebarOpen={isSidebarOpen}
+        toggleSidebar={toggleSidebar}
+      />
 
       <div className="layout-body">
         <aside className={`layout-sidebar ${isSidebarOpen ? "open" : "closed"}`}>
@@ -31,14 +24,10 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
           </ul>
         </aside>
 
-        <main
-          className={`layout-content ${isSidebarOpen ? "sidebar-open" : "sidebar-closed"}`}
-        >
-          {children}
+        <main className={`layout-content ${isSidebarOpen ? "sidebar-open" : "sidebar-closed"}`}>
+          <Outlet /> 
         </main>
       </div>
     </div>
   );
-};
-
-export default Layout;
+}
