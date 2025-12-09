@@ -1,0 +1,11 @@
+.card{
+    border: 1.5px solid var(--dark-purple);
+    box-shadow: 0 0 5px 1px var(--dark-purple-700);
+}
+input{
+    border: none;
+    border-bottom: 2px solid var(--light-pink);
+}
+button:focus,input:focus-visible{
+    outline: none;
+}
