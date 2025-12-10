@@ -54,10 +54,10 @@
 
 .layout-content {
   flex: 1;
+  min-width: 0;    
   padding: 1rem;
-  transition: margin-left 0.3s ease;
   background: var(--bg-black-100);
-  color: var(--light-purple-900); 
+  color: var(--light-purple-900);
 }
 
 .layout-content.sidebar-open {
@@ -84,6 +84,7 @@
     border-right: none;
     transform: translateX(0);
     z-index: 999;
+    transition: transform 0.35s ease-in-out;
   }
 
   .layout-sidebar.closed {
@@ -94,5 +95,6 @@
 
   .layout-content {
     margin-left: 0 !important;
+    padding: 1rem 0.7rem; 
   }
 }
