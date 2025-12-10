@@ -23,7 +23,6 @@ export function Header({
     transition: ""
   });
 
-  /* Detect overflow of topbar menu */
   useEffect(() => {
     if (!navRef.current) return;
 
@@ -52,7 +51,6 @@ export function Header({
     };
   }, []);
 
-  /* Scroll to end */
   const scrollToEnd = () => {
     if (!navRef.current) return;
     navRef.current.scrollTo({
@@ -61,7 +59,6 @@ export function Header({
     });
   };
 
-  /* Scroll to start */
   const scrollToStart = () => {
     if (!navRef.current) return;
     navRef.current.scrollTo({
@@ -80,7 +77,7 @@ export function Header({
 
     const { offsetLeft, offsetWidth } = activeLink;
 
-    setUnderline((prev: any) => ({
+    setUnderline(() => ({
       left: offsetLeft,
       width: offsetWidth,
       transition: "all 0.3s ease"
@@ -120,7 +117,6 @@ export function Header({
         </div>
       </div>
 
-      {/* Scrollable nav */}
       <div className="topbar-menu-wrapper">
 
         {showLeftArrow && (

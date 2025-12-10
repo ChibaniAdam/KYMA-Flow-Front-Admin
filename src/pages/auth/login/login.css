@@ -4,11 +4,30 @@
     min-width: 30vw;
     min-height: 40vh;
 }
-input{
-    border: none;
-    border-bottom: 2px solid var(--light-pink);
-    transition: border-bottom-width 0.2s ease;
+
+.login-input {
+  border: none;
+  border-bottom: 2px solid var(--light-pink);
+  transition: border-bottom-width 0.2s ease, background-color 0.25s ease;
+  background-color: white;
 }
-button:focus,input:focus-visible{
-    border-bottom-width: 4px;
+
+.login-input:focus-visible {
+  border-bottom-width: 4px;
 }
+
+.login-input:-webkit-autofill {
+  -webkit-box-shadow: 0 0 0px 1000px white inset;
+  -webkit-text-fill-color: black;
+  transition: background-color 5000s ease-in-out 0s;
+}
+
+.login-input:-webkit-autofill:focus {
+  -webkit-box-shadow: 0 0 0px 1000px white inset;
+  -webkit-text-fill-color: black;
+}
+
+.login-input:-internal-autofill-previewed { 
+  background-color: white !important;
+}
+
