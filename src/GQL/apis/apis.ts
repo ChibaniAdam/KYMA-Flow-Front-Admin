@@ -12,11 +12,24 @@ export type UserQuery = {
 };
 
 export type UserQueryVariables = {
-  username: string;
+  uid: string;
 };
 
 export type HealthQuery = {
-  health: string;
+  health: {
+    status: string;
+    timestamp: number;
+    ldap: boolean;
+  };
+};
+
+export type StatsQuery = {
+  stats: {
+    poolSize: number;
+    available: number;
+    inUse: number;
+    totalRequests: number;
+  };
 };
 
 // ------------------- Mutations -------------------
@@ -26,7 +39,7 @@ export type LoginMutation = {
 };
 
 export type LoginMutationVariables = {
-  username: string;
+  uid: string;
   password: string;
 };
 

@@ -1,8 +1,13 @@
 export type User = {
-  id: String
-  username: String
-  email: String
-  firstName: String
-  lastName: String
-  userType: String
+  uid: string
+  cn: string
+  sn: string
+  givenName: string
+  mail: string
+  department: string
+  uidNumber: number
+  gidNumber: number
+  homeDirectory: string
+  repositories: string[]
+  dn: string
 }

@@ -9,11 +9,19 @@ import type { MeQuery,
 const GRAPHQL_ENDPOINT = import.meta.env.VITE_GRAPHQL_ENDPOINT!;
 
 async function graphqlRequest<T, V = Record<string, any>>(query: string, variables?: V): Promise<T> {
+  const token = localStorage.getItem('authToken');
+
+  const headers: Record<string, string> = {
+    "Content-Type": "application/json",
+  };
+
+  if (token) {
+    headers["Authorization"] = `Bearer ${token}`;
+  }
+
   const res = await fetch(GRAPHQL_ENDPOINT, {
     method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-    },
+    headers,
     body: JSON.stringify({ query, variables }),
   });
 
@@ -30,12 +38,17 @@ export const getMe = async (): Promise<MeQuery> => {
   const query = `
     query {
       me {
-        id
-        username
-        email
-        firstName
-        lastName
-        userType
+        uid
+        cn
+        sn
+        givenName
+        mail
+        department
+        uidNumber
+        gidNumber
+        homeDirectory
+        repositories
+        dn
       }
     }
   `;
@@ -44,14 +57,19 @@ export const getMe = async (): Promise<MeQuery> => {
 
 export const getUser = async (variables: UserQueryVariables): Promise<UserQuery> => {
   const query = `
-    query ($username: String!) {
-      user(username: $username) {
-        id
-        username
-        email
-        firstName
-        lastName
-        userType
+    query ($uid: String!) {
+      user(uid: $uid) {
+        uid
+        cn
+        sn
+        givenName
+        mail
+        department
+        uidNumber
+        gidNumber
+        homeDirectory
+        repositories
+        dn
       }
     }
   `;
@@ -61,7 +79,11 @@ export const getUser = async (variables: UserQueryVariables): Promise<UserQuery>
 export const getHealth = async (): Promise<HealthQuery> => {
   const query = `
     query {
-      health
+      health {
+        status
+        timestamp
+        ldap
+      }
     }
   `;
   return graphqlRequest<HealthQuery>(query);
@@ -71,16 +93,21 @@ export const getHealth = async (): Promise<HealthQuery> => {
 
 export const login = async (variables: LoginMutationVariables): Promise<LoginMutation> => {
   const mutation = `
-    mutation ($username: String!, $password: String!) {
-      login(username: $username, password: $password) {
+    mutation ($uid: String!, $password: String!) {
+      login(uid: $uid, password: $password) {
         token
         user {
-          id
-          username
-          email
-          firstName
-          lastName
-          userType
+          uid
+          cn
+          sn
+          givenName
+          mail
+          department
+          uidNumber
+          gidNumber
+          homeDirectory
+          repositories
+          dn
         }
       }
     }
