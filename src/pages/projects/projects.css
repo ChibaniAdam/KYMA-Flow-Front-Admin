@@ -1,0 +1,180 @@
+.projects-page {
+  padding: 2rem;
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+  color: var(--light-purple-900);
+}
+
+/* ---------------- Search + Topbar ---------------- */
+
+.projects-topbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.projects-search {
+  width: 360px;
+  background: var(--bg-black-200);
+  border: 1px solid var(--bg-black-400);
+  padding: 10px 14px;
+  border-radius: 8px;
+  color: var(--light-purple-900);
+  outline: none;
+}
+
+.projects-search:focus {
+  border-color: var(--light-purple-700);
+}
+
+.projects-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+}
+
+.projects-view-btn {
+  background: var(--bg-black-200);
+  border: 1px solid var(--bg-black-400);
+  padding: 8px 10px;
+  border-radius: 6px;
+  cursor: pointer;
+  color: var(--light-purple-900);
+}
+
+.projects-view-btn:hover {
+  background: var(--bg-black-400);
+}
+
+.projects-add-btn {
+  background: white;
+  color: black;
+  padding: 8px 14px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: 600;
+  border: none;
+}
+
+/* ---------------- Main Grid ---------------- */
+
+.projects-grid {
+  display: grid;
+  grid-template-columns: 280px 1fr;
+  gap: 2rem;
+}
+
+/* ---------------- Widgets ---------------- */
+
+.widget-card {
+  background: var(--bg-black-200);
+  border: 1px solid var(--bg-black-400);
+  padding: 1.2rem;
+  border-radius: 12px;
+  color: var(--light-purple-900);
+}
+
+.widget-title {
+  margin-bottom: 1rem;
+  font-size: 16px;
+  color: var(--light-purple-700);
+}
+
+.usage-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.usage-list li {
+  display: flex;
+  justify-content: space-between;
+  padding: 6px 0;
+  font-size: 14px;
+}
+
+.widget-text {
+  font-size: 14px;
+  opacity: 0.7;
+  margin-bottom: 1rem;
+}
+
+.upgrade-btn {
+  background: none;
+  border: 1px solid var(--light-purple-700);
+  padding: 6px 10px;
+  border-radius: 6px;
+  cursor: pointer;
+  color: var(--light-purple-700);
+}
+
+.upgrade-btn:hover {
+  background: var(--light-purple-300);
+  color: black;
+}
+
+/* ---------------- Project Cards ---------------- */
+
+.project-card {
+  background: var(--bg-black-200);
+  border: 1px solid var(--dark-purple-500);
+  border-radius: 12px;
+  padding: 1.2rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.project-left {
+  display: flex;
+  gap: 1rem;
+}
+
+.project-icon {
+  font-size: 28px;
+}
+
+.project-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.project-title {
+  font-size: 16px;
+  color: white;
+}
+
+.project-date {
+  font-size: 13px;
+  opacity: 0.6;
+  color: var(--light-purple-900);
+  display: flex;
+}
+.project-date svg{
+    color: var(--light-purple-500)
+}
+.project-subtext{
+    color: white;
+    cursor: pointer;
+    outline: none;
+    background-color: var(--light-blue-600);
+    text-decoration: none;
+}
+
+.project-right {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.project-status {
+  color: var(--light-purple-700);
+}
+
+.project-menu {
+  cursor: pointer;
+  font-size: 20px;
+  opacity: 0.6;
+}
