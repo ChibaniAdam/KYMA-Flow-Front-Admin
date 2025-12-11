@@ -29,8 +29,12 @@ export function ProjectCard({
 
           {repoName && (
             <Tooltip text={repoName} color="var(--light-blue-600)" position="top">
-              <a href={repoLink} target="_blank" className="project-subtext flex min-w-0 flex-none flex-row items-center gap-0.5 rounded-full p-0.5 pr-1.5 w-fit max-w-48">
-                <svg
+    <a
+  href={repoLink}
+  target="_blank"
+  className="project-subtext flex min-w-0 flex-row items-center gap-0.5 rounded-full p-0.5 pr-1.5 max-w-48"
+>
+      <svg
                   aria-label="github"
                   height="14"
                   viewBox="0 0 14 14"
@@ -43,8 +47,12 @@ export function ProjectCard({
                     fillRule="nonzero"
                   />
                 </svg>
-                {repoName}
-              </a>
+
+  <span className="min-w-0 overflow-hidden text-ellipsis whitespace-nowrap">
+    {repoName}
+  </span>
+</a>
+
             </Tooltip>
           )}
 
