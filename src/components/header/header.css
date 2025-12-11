@@ -82,14 +82,28 @@
   cursor: pointer;
 }
 
-.topbar-menu {
-  height: 44px;
+.topbar-menu-wrapper {
+  position: relative;
+  width: 100%;
   display: flex;
   align-items: center;
+}
+
+.topbar-menu {
+  display: flex;
   gap: 1.6rem;
   padding: 0 1.2rem;
-  border-top: 1px solid var(--bg-black-300);
-  background: var(--bg-black-200);
+  height: 44px;
+  align-items: center;
+  overflow-x: auto;
+  overflow-y: hidden;
+  white-space: nowrap;
+  scroll-behavior: smooth;
+  -ms-overflow-style: none;   
+  scrollbar-width: none;     
+}
+.topbar-menu::-webkit-scrollbar {
+  display: none;
 }
 
 .topbar-menu a {
@@ -113,8 +127,8 @@
 }
 .hamburger {
   position: relative;
-  width: 30px;
-  height: 24px;
+  width: 25px;
+  height: 20px;
   display: flex;
   flex-direction: column;
   justify-content: space-between;
@@ -135,7 +149,7 @@
 }
 
 .hamburger.open span:nth-child(1) {
-  transform: rotate(45deg) translate(5px, 5px);
+  transform: rotate(45deg) translate(4.5px, 4.5px);
 }
 
 .hamburger.open span:nth-child(2) {
@@ -143,7 +157,7 @@
 }
 
 .hamburger.open span:nth-child(3) {
-  transform: rotate(-45deg) translate(5px, -5px);
+  transform: rotate(-45deg) translate(4.5px, -4.5px);
 }
 
 .topbar-menu {
@@ -191,6 +205,31 @@
 }
 
 .menu-item:hover {
+  background: var(--bg-black-400);
+}
+
+.scroll-arrow {
+  position: absolute;
+  right: 0;
+  top: 5px;
+  width: 28px;
+  height: 28px;
+  border: none;
+  background: var(--bg-black-300);
+  color: var(--light-purple-800);
+  cursor: pointer;
+  border-radius: 4px;
+  z-index: 20;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.scroll-arrow.left {
+  left: 0;
+}
+
+.scroll-arrow:hover {
   background: var(--bg-black-400);
 }
 
