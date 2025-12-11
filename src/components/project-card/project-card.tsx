@@ -74,6 +74,7 @@ export function ProjectCard({
                   fill="currentColor"
                 />
               </svg>
+              &nbsp;
               {branch}
             </span>
           )}

@@ -10,9 +10,11 @@
 /* ---------------- Search + Topbar ---------------- */
 
 .projects-topbar {
+  width: 50%;
   display: flex;
   justify-content: space-between;
   align-items: center;
+  justify-content: space-evenly;
 }
 
 .projects-search {
@@ -102,7 +104,8 @@
   }
 
   .projects-topbar {
-    flex-direction: column;
+    width: 100%;
+    flex-direction: column-reverse;
     align-items: stretch;
     gap: 1rem;
   }
