@@ -10,24 +10,22 @@ export default function Layout() {
 
   return (
     <div className="layout">
-      <Header
-        isSidebarOpen={isSidebarOpen}
-        toggleSidebar={toggleSidebar}
-      />
+      <Header/>
 
-      <div className="layout-body">
-        <aside className={`layout-sidebar ${isSidebarOpen ? "open" : "closed"}`}>
-          <ul>
-            <li>Tool 1</li>
-            <li>Tool 2</li>
-            <li>Tool 3</li>
-          </ul>
-        </aside>
+      <aside className={`layout-sidebar ${isSidebarOpen ? "open" : "closed"}`}>
+        <div className="sidebar-toggle" onClick={toggleSidebar}>
+          <span className={`arrow ${isSidebarOpen ? "open" : ""}`}>➤</span>
+        </div>
+        <ul>
+          <li>Tool 1</li>
+          <li>Tool 2</li>
+          <li>Tool 3</li>
+        </ul>
+      </aside>
 
-        <main className={`layout-content ${isSidebarOpen ? "sidebar-open" : "sidebar-closed"}`}>
-          <Outlet /> 
-        </main>
-      </div>
+      <main className="layout-content">
+        <Outlet />
+      </main>
     </div>
   );
 }

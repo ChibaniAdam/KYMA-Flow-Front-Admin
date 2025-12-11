@@ -2,13 +2,7 @@ import { NavLink, useLocation } from "react-router-dom";
 import "./header.css";
 import { useEffect, useRef, useState } from "react";
 
-export function Header({
-  isSidebarOpen,
-  toggleSidebar
-}: {
-  isSidebarOpen: boolean;
-  toggleSidebar: () => void;
-}) {
+export function Header() {
   const navRef = useRef<HTMLDivElement>(null);
   const location = useLocation();
   const [menuOpen, setMenuOpen] = useState(false);
@@ -88,14 +82,6 @@ export function Header({
     <header className="topbar-container">
       <div className="topbar-row">
         <div className="topbar-left">
-          <button
-            className={`hamburger ${isSidebarOpen ? "open" : ""}`}
-            onClick={toggleSidebar}
-          >
-            <span></span>
-            <span></span>
-            <span></span>
-          </button>
 
           <div className="project">
             <div className="logo">▲</div>
