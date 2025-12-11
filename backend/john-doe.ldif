@@ -1,0 +1,13 @@
+dn: uid=john.doe,ou=users,dc=devplatform,dc=local
+objectClass: inetOrgPerson
+objectClass: posixAccount
+objectClass: shadowAccount
+uid: john.doe
+cn: John Doe
+sn: Doe
+givenName: John
+mail: john.doe@devplatform.local
+uidNumber: 10001
+gidNumber: 10001
+homeDirectory: /home/john.doe
+userPassword: password123

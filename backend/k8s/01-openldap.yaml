@@ -156,3 +156,21 @@ spec:
     name: ldaps
   selector:
     app: openldap
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: openldap1
+  namespace: dev-platform
+spec:
+  selector:
+    app: openldap
+  ports:
+    - name: ldap
+      port: 389
+      targetPort: 389
+    - name: ldaps
+      port: 636
+      targetPort: 636
+  type: ClusterIP
+
