@@ -10,15 +10,22 @@
 /* ---------------- Search + Topbar ---------------- */
 
 .projects-topbar {
-  width: 50%;
-  display: flex;
-  justify-content: space-between;
+  width: 100%;
+  max-width: 1400px;
+  display: grid;
+  grid-template-columns: 1fr 3fr;
+  gap: 2rem;
   align-items: center;
-  justify-content: space-evenly;
+}
+
+.projects-topbar-right {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
 }
 
 .projects-search {
-  width: 360px;
+  flex: 1;
   background: var(--bg-black-200);
   border: 1px solid var(--bg-black-400);
   padding: 10px 14px;

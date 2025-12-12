@@ -7,6 +7,7 @@ export function Header() {
   const location = useLocation();
   const [menuOpen, setMenuOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
+  const [isScrolled, setIsScrolled] = useState(false);
 
   const [showRightArrow, setShowRightArrow] = useState(false);
   const [showLeftArrow, setShowLeftArrow] = useState(false);
@@ -16,6 +17,15 @@ export function Header() {
     width: 0,
     transition: ""
   });
+
+  useEffect(() => {
+    const handlePageScroll = () => {
+      setIsScrolled(window.scrollY > 50);
+    };
+
+    window.addEventListener("scroll", handlePageScroll);
+    return () => window.removeEventListener("scroll", handlePageScroll);
+  }, []);
 
   useEffect(() => {
     if (!navRef.current) return;
@@ -76,10 +86,10 @@ export function Header() {
       width: offsetWidth,
       transition: "all 0.3s ease"
     }));
-  }, [location]);
+  }, [location, isScrolled]);
 
   return (
-    <header className="topbar-container">
+    <header className={`topbar-container ${isScrolled ? "minified" : ""}`}>
       <div className="topbar-row">
         <div className="topbar-left">
 
@@ -90,12 +100,16 @@ export function Header() {
         </div>
 
         <div className="topbar-right" ref={menuRef}>
-          <div
+          <button
+            type="button"
             className="topbar-avatar"
+            aria-label="Open user menu"
+            aria-expanded={menuOpen}
+            aria-controls="avatar-menu"
             onClick={() => setMenuOpen(!menuOpen)}
           />
           {menuOpen && (
-            <div className="avatar-menu">
+            <div id="avatar-menu" className="avatar-menu">
               <button className="menu-item">Account Settings</button>
               <button className="menu-item">Logout</button>
             </div>

@@ -2,10 +2,10 @@ import type { ReactNode } from "react";
 import "./widget-card.css";
 
 interface WidgetCardProps {
-  title: string;
-  children: ReactNode;
-  actionLabel?: string;
-  onAction?: () => void;
+  readonly title: string;
+  readonly children: ReactNode;
+  readonly actionLabel?: string;
+  readonly onAction?: () => void;
 }
 
 export default function WidgetCard({

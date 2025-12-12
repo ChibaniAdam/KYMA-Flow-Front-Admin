@@ -57,10 +57,16 @@ export const Tooltip: React.FC<TooltipProps> = ({
 
     const rect = boxRef.current.getBoundingClientRect();
     const tooLeft = rect.left < 8;
-    const tooRight = rect.right > window.innerWidth - 8;
+    const tooRight = rect.right > globalThis.innerWidth - 8;
 
-    setFlipped(tooLeft || tooRight);
-  }, [visible, position, text]);
+    const nextFlipped = tooLeft || tooRight;
+    if (nextFlipped !== flipped) {
+      const rafId = globalThis.requestAnimationFrame(() => {
+        setFlipped(nextFlipped);
+      });
+      return () => globalThis.cancelAnimationFrame(rafId);
+    }
+  }, [visible, position, text, flipped]);
 
   const arrowStyle = (): React.CSSProperties => {
     const size = 6; 
@@ -136,11 +142,20 @@ export const Tooltip: React.FC<TooltipProps> = ({
       : "";
 
   return (
-    <div
+    <button
+      type="button"
       className="relative inline-block"
+      aria-haspopup="true"
+      aria-expanded={visible}
       onMouseEnter={show}
       onMouseLeave={hide}
-      style={{ ["--tooltip-color" as any]: color } as React.CSSProperties}
+      onTouchStart={show}
+      onTouchEnd={hide}
+      onKeyDown={(e) => {
+        if (e.key === "Enter" || e.key === " ") show();
+        if (e.key === "Escape") hide();
+      }}
+      style={{ ["--tooltip-color"]: color } as React.CSSProperties}
     >
       {children}
 
@@ -163,6 +178,6 @@ export const Tooltip: React.FC<TooltipProps> = ({
           className="tooltip-arrow"
         />
       </div>
-    </div>
+    </button>
   );
 };
