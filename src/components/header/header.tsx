@@ -114,6 +114,7 @@ export function Header() {
         <nav className="topbar-menu" ref={navRef}>
           <NavLink to="/projects">Projects</NavLink>
           <NavLink to="/dashboard">Dashboard</NavLink>
+          <NavLink to="/users-dashboard">Users Dashboard</NavLink>
           <NavLink to="/deployments">Deployments</NavLink>
           <NavLink to="/activity">Activity</NavLink>
           <NavLink to="/domains">Domains</NavLink>

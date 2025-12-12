@@ -1,0 +1,96 @@
+:root {
+  /* Using your color palette */
+  --primary-dark: hsl(258, 63%, 48%);
+  --primary-light: hsl(293, 84%, 76%);
+  --secondary: hsl(231, 96%, 62%);
+  --bg-dark: hsl(0, 0%, 12%);
+  --text-light: hsl(0, 0%, 96%);
+  --danger: hsl(283, 87%, 50%);
+}
+
+.user-table-container {
+  background-color: var(--bg-dark);
+  padding: 2rem;
+  border-radius: 1rem;
+  color: var(--text-light);
+  max-width: 900px;
+  margin: 2rem auto;
+  box-shadow: 0 0 10px rgba(0, 0, 0, 0.7);
+}
+
+.table-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+}
+
+.create-btn {
+  background-color: var(--primary-light);
+  color: var(--bg-dark);
+  border: none;
+  padding: 0.5rem 1rem;
+  border-radius: 0.5rem;
+  cursor: pointer;
+  font-weight: bold;
+  transition: background-color 0.25s;
+}
+
+.create-btn:hover {
+  background-color: var(--primary-dark);
+  color: var(--text-light);
+}
+
+.user-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.user-table th,
+.user-table td {
+  padding: 0.75rem 1rem;
+  text-align: left;
+}
+
+.user-table thead {
+  background-color: var(--primary-dark);
+}
+
+.user-table tbody tr {
+  background-color: var(--bg-dark);
+  border-bottom: 1px solid var(--primary-light);
+}
+
+.user-table tbody tr:hover {
+  background-color: var(--primary-light);
+  color: var(--bg-dark);
+}
+
+.update-btn,
+.delete-btn {
+  border: none;
+  padding: 0.4rem 0.8rem;
+  border-radius: 0.5rem;
+  margin-right: 0.5rem;
+  cursor: pointer;
+  font-weight: bold;
+  transition: background-color 0.2s;
+}
+
+.update-btn {
+  background-color: var(--secondary);
+  color: var(--bg-dark);
+}
+
+.update-btn:hover {
+  background-color: hsl(231, 96%, 78%);
+}
+
+.delete-btn {
+  background-color: var(--danger);
+  color: var(--bg-dark);
+}
+
+.delete-btn:hover {
+  background-color: hsl(283, 87%, 65%);
+}

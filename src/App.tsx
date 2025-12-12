@@ -4,6 +4,7 @@ import Login from './pages/auth/login/login';
 import Dashboard from './pages/dashboard/dashboard';
 import Layout from './layouts/layout';
 import Projects from './pages/projects/projects';
+import { UsersDashboard } from './pages/users-dashboard/users-dashboard';
 
 function App() {
 
@@ -15,6 +16,7 @@ function App() {
           <Route element={<Layout />}>
               <Route path="/dashboard" element={<Dashboard />} />
               <Route path="/projects" element={<Projects />} />
+              <Route path="/users-dashboard" element={<UsersDashboard />} />
           </Route>
         </Routes>
     </Router>
