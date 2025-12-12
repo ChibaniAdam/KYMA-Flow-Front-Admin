@@ -1,18 +1,35 @@
-import React, { useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import {
   listUsers,
   createUser,
   updateUser,
   deleteUser,
 } from "../../services/userService";
+
 import type { User, CreateUserInput, UpdateUserInput } from "../../GQL/models/user";
+import { UserForm } from "./user-form/user-form";
+import { listDepartments } from "../../services/departmentService";
+import type { Department } from "../../GQL/models/department";
+
 import "./users-dashboard.css";
+import { CustomSelect } from "../../components/custom-select/custom-select";
+import { ConfirmationModal } from "../../components/confirmation-modal/confirmation-modal";
 
 export const UsersDashboard = () => {
   const [users, setUsers] = useState<User[]>([]);
+  const [filteredUsers, setFilteredUsers] = useState<User[]>([]);
+  const [departments, setDepartments] = useState<Department[]>([]);
+
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
   const [editingUser, setEditingUser] = useState<User | null>(null);
+
+  const [deleteUserId, setDeleteUserId] = useState<string | null>(null);
+  const [deleting, setDeleting] = useState(false);
+
+  const [search, setSearch] = useState("");
+  const [departmentFilter, setDepartmentFilter] = useState("");
+
   const [formData, setFormData] = useState<CreateUserInput | UpdateUserInput>({
     uid: "",
     cn: "",
@@ -24,24 +41,48 @@ export const UsersDashboard = () => {
     repositories: [],
   });
 
-  // Load users
   const fetchUsers = async () => {
     setLoading(true);
     try {
       const data = await listUsers();
       setUsers(data);
+      setFilteredUsers(data);
     } finally {
       setLoading(false);
     }
   };
 
+  const fetchDepartments = async () => {
+    const data = await listDepartments();
+    setDepartments(data);
+  };
+
   useEffect(() => {
     fetchUsers();
+    fetchDepartments();
   }, []);
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setFormData({ ...formData, [e.target.name]: e.target.value });
-  };
+
+  useEffect(() => {
+    let u = [...users];
+
+    if (departmentFilter)
+      u = u.filter((usr) => usr.department === departmentFilter);
+
+    if (search.trim()) {
+      const s = search.toLowerCase();
+      u = u.filter(
+        (usr) =>
+          usr.uid.toLowerCase().includes(s) ||
+          usr.givenName.toLowerCase().includes(s) ||
+          usr.sn.toLowerCase().includes(s) ||
+          usr.mail.toLowerCase().includes(s)
+      );
+    }
+
+    setFilteredUsers(u);
+  }, [search, departmentFilter, users]);
+
 
   const handleCreateClick = () => {
     setEditingUser(null);
@@ -60,26 +101,17 @@ export const UsersDashboard = () => {
 
   const handleEditClick = (user: User) => {
     setEditingUser(user);
-    setFormData({
-      uid: user.uid,
-      cn: user.cn,
-      sn: user.sn,
-      givenName: user.givenName,
-      mail: user.mail,
-      department: user.department,
-      password: "",
-      repositories: user.repositories,
-    });
+    setFormData(user);
     setShowModal(true);
   };
 
   const handleSubmit = async () => {
     try {
-      if (editingUser) {
+      if (editingUser)
         await updateUser(formData as UpdateUserInput);
-      } else {
+      else
         await createUser(formData as CreateUserInput);
-      }
+
       setShowModal(false);
       fetchUsers();
     } catch (err) {
@@ -87,119 +119,133 @@ export const UsersDashboard = () => {
     }
   };
 
-  const handleDelete = async (uid: string) => {
-    if (window.confirm("Are you sure you want to delete this user?")) {
-      await deleteUser(uid);
+
+
+  const handleDelete = (uid: string) => {
+    setDeleteUserId(uid); 
+  };
+
+  const confirmDelete = async () => {
+    if (!deleteUserId) return;
+    setDeleting(true);
+    try {
+      await deleteUser(deleteUserId);
       fetchUsers();
+    } finally {
+      setDeleting(false);
+      setDeleteUserId(null);
     }
   };
 
   return (
-    <div className="user-table-container">
-      <div className="table-header">
-        <h2>Users</h2>
-        <button className="create-btn" onClick={handleCreateClick}>
-          Create User
-        </button>
+    <div className="users-page">
+
+      <div className="users-page-title">
+        <h1>Users</h1>
+        <p>Manage all user accounts across departments.</p>
       </div>
 
-      {loading ? (
-        <p>Loading...</p>
-      ) : (
-        <table className="user-table">
-          <thead>
-            <tr>
-              <th>UID</th>
-              <th>Name</th>
-              <th>Email</th>
-              <th>Department</th>
-              <th>Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            {users.map((user) => (
-              <tr key={user.uid}>
-                <td>{user.uid}</td>
-                <td>{user.givenName} {user.sn}</td>
-                <td>{user.mail}</td>
-                <td>{user.department}</td>
-                <td>
-                  <button
-                    className="update-btn"
-                    onClick={() => handleEditClick(user)}
-                  >
-                    Update
-                  </button>
-                  <button
-                    className="delete-btn"
-                    onClick={() => handleDelete(user.uid)}
-                  >
-                    Delete
-                  </button>
-                </td>
-              </tr>
+      <div className="users-filter-bar">
+        <div className="filter-group">
+          <input
+            type="text"
+            placeholder="Search by name, UID, email..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className="filter-input"
+          />
+        </div>
+        <div className="flex gap-2">
+        <div className="filter-group select-wrapper">
+              <CustomSelect
+      value={departmentFilter}
+      options={departments.map((d) => ({ label: d.ou, value: d.ou }))}
+      placeholder="All Departments"
+      onChange={(v) => setDepartmentFilter(v)}
+    />
+ 
+        </div>
+
+        <button className="create-btn" onClick={handleCreateClick}>
+          + Add User
+        </button>
+        </div>
+      </div>
+
+      <div className="user-table-wrapper">
+        {loading ? (
+          <div className="skeleton-table">
+            {Array.from({ length: 8 }).map((_, i) => (
+              <div key={i} className="skeleton-row"></div>
             ))}
-          </tbody>
-        </table>
-      )}
+          </div>
+        ) : (
+          <table className="user-table">
+            <thead>
+              <tr>
+                <th>UID</th>
+                <th>Name</th>
+                <th>Email</th>
+                <th>Department</th>
+                <th></th>
+              </tr>
+            </thead>
+
+            <tbody>
+              {filteredUsers.map((user) => (
+                <tr key={user.uid}>
+                  <td>{user.uid}</td>
+                  <td>{user.givenName} {user.sn}</td>
+                  <td>{user.mail}</td>
+                  <td>{user.department}</td>
+                  <td className="actions">
+                    <button
+                      onClick={() => handleEditClick(user)}
+                      className="update-btn"
+                    >
+                      Edit
+                    </button>
+                    <button
+                      onClick={() => handleDelete(user.uid)}
+                      className="delete-btn"
+                    >
+                      Delete
+                    </button>
+                  </td>
+                </tr>
+              ))}
+
+              {filteredUsers.length === 0 && (
+                <tr>
+                  <td colSpan={5} className="empty-msg">
+                    No users found.
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        )}
+      </div>
 
       {showModal && (
-        <div className="modal-backdrop">
-          <div className="modal">
-            <h3>{editingUser ? "Update User" : "Create User"}</h3>
-            <input
-              name="uid"
-              placeholder="UID"
-              value={formData.uid}
-              onChange={handleChange}
-              disabled={!!editingUser}
-            />
-            <input
-              name="givenName"
-              placeholder="First Name"
-              value={formData.givenName}
-              onChange={handleChange}
-            />
-            <input
-              name="sn"
-              placeholder="Last Name"
-              value={formData.sn}
-              onChange={handleChange}
-            />
-            <input
-              name="cn"
-              placeholder="Common Name"
-              value={formData.cn}
-              onChange={handleChange}
-            />
-            <input
-              name="mail"
-              placeholder="Email"
-              value={formData.mail}
-              onChange={handleChange}
-            />
-            <input
-              name="department"
-              placeholder="Department"
-              value={formData.department}
-              onChange={handleChange}
-            />
-            <input
-              name="password"
-              type="password"
-              placeholder="Password"
-              value={formData.password}
-              onChange={handleChange}
-            />
-            <div className="modal-actions">
-              <button onClick={handleSubmit}>
-                {editingUser ? "Update" : "Create"}
-              </button>
-              <button onClick={() => setShowModal(false)}>Cancel</button>
-            </div>
-          </div>
-        </div>
+        <UserForm
+          editingUser={editingUser}
+          formData={formData}
+          setFormData={setFormData}
+          onSubmit={handleSubmit}
+          departments={departments}
+          onClose={() => setShowModal(false)}
+        />
       )}
+      {deleteUserId && (
+        <ConfirmationModal
+          message="Are you sure you want to delete this user? This action cannot be undone."
+          onCancel={() => setDeleteUserId(null)}
+          onConfirm={confirmDelete}
+          loading={deleting}
+        />
+      )}
+
     </div>
   );
 };

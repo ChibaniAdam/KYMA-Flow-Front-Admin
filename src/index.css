@@ -5,7 +5,7 @@
   font-weight: 400;
 
   color-scheme: light dark;
-  color: black;
+  color: white;
   background-color: #242424;
 
   font-synthesis: none;
@@ -120,7 +120,11 @@ select:focus,
 button:focus {
   outline: none !important;
   box-shadow: none !important;
+
 }
+
+
+
 button{
     transition: background-color 0.35s ease-in-out;
 }

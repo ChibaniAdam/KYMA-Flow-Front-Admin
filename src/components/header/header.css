@@ -25,6 +25,23 @@
 .topbar-container.minified .topbar-menu-wrapper {
   padding-left: 0;
 }
+.topbar-right.mini {
+  margin-right: 1.2rem;
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 0.8rem;
+}
+
+.mini{
+  opacity: 0;
+  transform: scale(0);
+  transition: opacity 0.3s ease, transform 0.3s ease;
+}
+.topbar-container.minified .topbar-menu-wrapper .mini{
+  opacity: 1;
+  transform: scale(1);
+}
 
 .topbar-menu::before {
   content: '▲';

@@ -151,6 +151,22 @@ export function Header() {
             ▶
           </button>
         )}
+        <div className="topbar-right mini" ref={menuRef}>
+          <button
+            type="button"
+            className="topbar-avatar"
+            aria-label="Open user menu"
+            aria-expanded={menuOpen}
+            aria-controls="avatar-menu"
+            onClick={() => setMenuOpen(!menuOpen)}
+          />
+          {menuOpen && (
+            <div id="avatar-menu" className="avatar-menu">
+              <button className="menu-item">Account Settings</button>
+              <button className="menu-item">Logout</button>
+            </div>
+          )}
+        </div>
 
       </div>
     </header>

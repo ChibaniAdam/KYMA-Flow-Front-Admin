@@ -1,5 +1,4 @@
 .projects-page {
-  padding: 2rem;
   display: flex;
   flex-direction: column;
   gap: 2rem;
@@ -7,7 +6,6 @@
   align-items: center;  
 }
 
-/* ---------------- Search + Topbar ---------------- */
 
 .projects-topbar {
   width: 100%;

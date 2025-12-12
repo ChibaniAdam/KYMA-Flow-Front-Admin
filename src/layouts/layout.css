@@ -97,7 +97,7 @@
 
 .layout-content {
   flex: 1;
-  padding: 1rem;
+  padding: 3rem;
   background: var(--bg-black-100);
   color: var(--light-purple-900);
   min-height: 100vh;

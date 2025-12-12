@@ -3,6 +3,7 @@
     box-shadow: 0 0 5px 1px var(--dark-purple-700);
     min-width: 30vw;
     min-height: 40vh;
+    color: black;
 }
 
 .login-input {
