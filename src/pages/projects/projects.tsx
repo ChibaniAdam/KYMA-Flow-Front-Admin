@@ -7,15 +7,18 @@ export default function Projects() {
     <div className="projects-page">
 
       <div className="projects-topbar">
-        <input
-          className="projects-search"
-          type="text"
-          placeholder="Search Projects..."
-        />
-        <div className="projects-actions">
-          <button className="projects-view-btn">☰</button>
-          <button className="projects-view-btn">⬛</button>
-          <button className="projects-add-btn">Add New…</button>
+        <div></div>
+        <div className="projects-topbar-right">
+          <input
+            className="projects-search"
+            type="text"
+            placeholder="Search Projects..."
+          />
+          <div className="projects-actions">
+            <button className="projects-view-btn">☰</button>
+            <button className="projects-view-btn">⬛</button>
+            <button className="projects-add-btn">Add New…</button>
+          </div>
         </div>
       </div>
 

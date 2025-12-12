@@ -2,13 +2,13 @@ import { Tooltip } from "../tooltip/tooltip";
 import "./project-card.css";
 
 interface ProjectCardProps {
-  icon?: string;
-  title: string;
-  repoName?: string;
-  repoLink?: string;
-  dateRange?: string;
-  branch?: string;
-  status?: string;
+  readonly icon?: string;
+  readonly title: string;
+  readonly repoName?: string;
+  readonly repoLink?: string;
+  readonly dateRange?: string;
+  readonly branch?: string;
+  readonly status?: string;
 }
 
 export function ProjectCard({
