@@ -122,7 +122,16 @@ button:focus {
   box-shadow: none !important;
 
 }
-
+/* ─────────────────────────────── */
+/*          TABLE WRAPPER          */
+/* ─────────────────────────────── */
+.table-wrapper {
+  background: var(--bg-black-300);
+  border-radius: 1rem;
+  padding: 1rem;
+  border: 1px solid var(--bg-black-500);
+  margin-top: 1rem;
+}
 
 
 button{

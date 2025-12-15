@@ -42,6 +42,7 @@ export const UserForm = ({
       if (e.key === "Escape") onClose();
     };
     globalThis.addEventListener("keydown", handleEsc);
+    console.log(formData.department)
     return () => globalThis.removeEventListener("keydown", handleEsc);
   }, []);
 
@@ -55,6 +56,10 @@ export const UserForm = ({
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
+  const handleDepartmentChange = (value: string) => {
+    setFormData({...formData, department: value})
+  }
+
   return (
     <div className="modal-backdrop" onClick={handleBackdropClick}>
       <div className="modal-card modal-3parts" ref={modalRef}>
@@ -64,7 +69,7 @@ export const UserForm = ({
           <p>{editingUser ? "Modify the user details below." : "Fill in the information below to add a new user."}</p>
         </div>
 
-        <div className="modal-body">
+        <div className="user-modal-body">
 
           <div className="form-group">
             <label htmlFor="uid">UID</label>
@@ -117,7 +122,7 @@ export const UserForm = ({
                   value={formData.department || ""}
                   options={departments.map((d) => ({ label: d.ou, value: d.ou }))}
                   placeholder="All Departments"
-                  onChange={() => handleChange}
+                  onChange={(v) => handleDepartmentChange(v)}
                 />
           </div>
 

@@ -12,8 +12,9 @@ import { listDepartments } from "../../services/departmentService";
 import type { Department } from "../../GQL/models/department";
 
 import "./users-dashboard.css";
-import { CustomSelect } from "../../components/custom-select/custom-select";
 import { ConfirmationModal } from "../../components/confirmation-modal/confirmation-modal";
+import { FilterBar } from "../../components/filter-bar/filter-bar";
+import { DataTable } from "../../components/data-table/data-table";
 
 export const UsersDashboard = () => {
   const [users, setUsers] = useState<User[]>([]);
@@ -102,6 +103,7 @@ export const UsersDashboard = () => {
   const handleEditClick = (user: User) => {
     setEditingUser(user);
     setFormData(user);
+    console.log(user)
     setShowModal(true);
   };
 
@@ -145,87 +147,53 @@ export const UsersDashboard = () => {
         <p>Manage all user accounts across departments.</p>
       </div>
 
-      <div className="users-filter-bar">
-        <div className="filter-group">
-          <input
-            type="text"
-            placeholder="Search by name, UID, email..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className="filter-input"
+        <FilterBar
+            filters={[
+              {
+                key: "search",
+                type: "text",
+                placeholder: "Search by name, UID, email...",
+                value: search,
+                onChange: setSearch,
+              },
+              {
+                key: "department",
+                type: "select",
+                placeholder: "All Departments",
+                value: departmentFilter,
+                options: departments.map((d) => ({
+                  label: d.ou,
+                  value: d.ou,
+                })),
+                onChange: setDepartmentFilter,
+              },
+            ]}
+            actions={
+              <button className="create-btn" onClick={handleCreateClick}>
+                + Add User
+              </button>
+            }
           />
-        </div>
-        <div className="flex gap-2">
-        <div className="filter-group select-wrapper">
-              <CustomSelect
-      value={departmentFilter}
-      options={departments.map((d) => ({ label: d.ou, value: d.ou }))}
-      placeholder="All Departments"
-      onChange={(v) => setDepartmentFilter(v)}
-    />
- 
-        </div>
 
-        <button className="create-btn" onClick={handleCreateClick}>
-          + Add User
-        </button>
-        </div>
-      </div>
-
-      <div className="user-table-wrapper">
-        {loading ? (
-          <div className="skeleton-table">
-            {Array.from({ length: 8 }).map((_, i) => (
-              <div key={i} className="skeleton-row"></div>
-            ))}
-          </div>
-        ) : (
-          <table className="user-table">
-            <thead>
-              <tr>
-                <th>UID</th>
-                <th>Name</th>
-                <th>Email</th>
-                <th>Department</th>
-                <th></th>
-              </tr>
-            </thead>
-
-            <tbody>
-              {filteredUsers.map((user) => (
-                <tr key={user.uid}>
-                  <td>{user.uid}</td>
-                  <td>{user.givenName} {user.sn}</td>
-                  <td>{user.mail}</td>
-                  <td>{user.department}</td>
-                  <td className="actions">
-                    <button
-                      onClick={() => handleEditClick(user)}
-                      className="update-btn"
-                    >
-                      Edit
-                    </button>
-                    <button
-                      onClick={() => handleDelete(user.uid)}
-                      className="delete-btn"
-                    >
-                      Delete
-                    </button>
-                  </td>
-                </tr>
-              ))}
-
-              {filteredUsers.length === 0 && (
-                <tr>
-                  <td colSpan={5} className="empty-msg">
-                    No users found.
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
-        )}
-      </div>
+ <div className="table-wrapper">
+  <DataTable<User>
+    loading={loading}
+    data={filteredUsers}
+    columns={[
+      { key: "uid", header: "UID" },
+      {
+        key: "name",
+        header: "Name",
+        render: (u) => `${u.givenName} ${u.sn}`,
+      },
+      { key: "mail", header: "Email" },
+      { key: "department", header: "Department" },
+    ]}
+    onEdit={handleEditClick}
+    onDelete={(u) => handleDelete(u.uid)}
+    emptyMessage="No users found."
+  />
+</div>
 
       {showModal && (
         <UserForm

@@ -62,7 +62,7 @@
   color: var(--bg-black-800);
 }
 
-.modal-body {
+.user-modal-body {
   padding: 1rem;
   display: grid;
   gap: 1.3rem;
@@ -79,8 +79,8 @@
   color: var(--dark-purple-1000);
 }
 
-.modal-body input,
-.modal-body select {
+.user-modal-body input,
+.user-modal-body select {
   padding: 0.5rem;
   border-radius: 0.5rem;
   border: 1px solid var(--light-blue-600);
@@ -89,8 +89,8 @@
   transition: border-color 0.2s;
 }
 
-.modal-body input:focus,
-.modal-body select:focus {
+.user-modal-body input:focus,
+.user-modal-body select:focus {
   outline: none;
   border-color: var(--light-blue-800);
 }
