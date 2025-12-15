@@ -85,3 +85,35 @@
 .data-table tbody tr:hover {
   background-color: var(--bg-black-400);
 }
+
+.sortable {
+  cursor: pointer;
+  user-select: none;
+}
+
+.sort-indicator {
+  margin-left: 0.4rem;
+  font-size: 0.7rem;
+  opacity: 0.8;
+}
+
+.table-pagination {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.5rem;
+  margin-top: 1rem;
+}
+
+.table-pagination button {
+  background: var(--bg-black-300);
+  border: 1px solid var(--bg-black-500);
+  color: var(--light-purple-1000);
+  padding: 0.3rem 0.6rem;
+  border-radius: 0.4rem;
+  cursor: pointer;
+}
+
+.table-pagination button:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}

@@ -20,6 +20,7 @@ export const UsersDashboard = () => {
   const [users, setUsers] = useState<User[]>([]);
   const [filteredUsers, setFilteredUsers] = useState<User[]>([]);
   const [departments, setDepartments] = useState<Department[]>([]);
+  const [selected, setSelected] = useState<string[]>([]);
 
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
@@ -176,23 +177,25 @@ export const UsersDashboard = () => {
           />
 
  <div className="table-wrapper">
-  <DataTable<User>
-    loading={loading}
-    data={filteredUsers}
-    columns={[
-      { key: "uid", header: "UID" },
-      {
-        key: "name",
-        header: "Name",
-        render: (u) => `${u.givenName} ${u.sn}`,
-      },
-      { key: "mail", header: "Email" },
-      { key: "department", header: "Department" },
-    ]}
-    onEdit={handleEditClick}
-    onDelete={(u) => handleDelete(u.uid)}
-    emptyMessage="No users found."
-  />
+<DataTable<User>
+  data={filteredUsers}
+  loading={loading}
+  onSelectionChange={setSelected}
+  pageSize={8}
+  columns={[
+    { key: "uid", header: "UID", sortable: true },
+    {
+      key: "givenName",
+      header: "Name",
+      sortable: true,
+      render: (u) => `${u.givenName} ${u.sn}`,
+    },
+    { key: "mail", header: "Email", sortable: true },
+    { key: "department", header: "Department", sortable: true },
+  ]}
+  onEdit={handleEditClick}
+  onDelete={(u) => handleDelete(u.uid)}
+/>
 </div>
 
       {showModal && (
