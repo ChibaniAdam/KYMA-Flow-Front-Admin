@@ -104,7 +104,6 @@ export const UsersDashboard = () => {
   const handleEditClick = (user: User) => {
     setEditingUser(user);
     setFormData(user);
-    console.log(user)
     setShowModal(true);
   };
 
@@ -118,7 +117,7 @@ export const UsersDashboard = () => {
       setShowModal(false);
       fetchUsers();
     } catch (err) {
-      console.error(err);
+      
     }
   };
 

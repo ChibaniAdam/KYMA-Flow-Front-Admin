@@ -42,7 +42,6 @@ export const UserForm = ({
       if (e.key === "Escape") onClose();
     };
     globalThis.addEventListener("keydown", handleEsc);
-    console.log(formData.department)
     return () => globalThis.removeEventListener("keydown", handleEsc);
   }, []);
 

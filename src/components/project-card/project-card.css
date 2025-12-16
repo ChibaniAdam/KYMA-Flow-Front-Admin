@@ -40,10 +40,6 @@
   display: flex;
 }
 
-.project-date svg{
-    color: var(--light-purple-500)
-}
-
 .project-subtext{
     color: white;
     cursor: pointer;

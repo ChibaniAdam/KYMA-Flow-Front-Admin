@@ -1,8 +1,10 @@
-import { NavLink, useLocation } from "react-router-dom";
+import { NavLink, useLocation, useNavigate } from "react-router-dom";
 import "./header.css";
 import { useEffect, useRef, useState } from "react";
+import { logout } from "../../services/userService";
 
 export function Header() {
+  const navigate = useNavigate();
   const navRef = useRef<HTMLDivElement>(null);
   const location = useLocation();
   const [menuOpen, setMenuOpen] = useState(false);
@@ -111,7 +113,7 @@ export function Header() {
           {menuOpen && (
             <div id="avatar-menu" className="avatar-menu">
               <button className="menu-item">Account Settings</button>
-              <button className="menu-item">Logout</button>
+              <button className="menu-item" onClick={() => logout(navigate)}>Logout</button>
             </div>
           )}
         </div>
@@ -163,7 +165,7 @@ export function Header() {
           {menuOpen && (
             <div id="avatar-menu" className="avatar-menu">
               <button className="menu-item">Account Settings</button>
-              <button className="menu-item">Logout</button>
+              <button className="menu-item" onClick={() => logout(navigate)}>Logout</button>
             </div>
           )}
         </div>

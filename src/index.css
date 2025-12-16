@@ -133,7 +133,6 @@ button:focus {
   margin-top: 1rem;
 }
 
-
 button{
     transition: background-color 0.35s ease-in-out;
 }

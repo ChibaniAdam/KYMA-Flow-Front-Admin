@@ -2,6 +2,8 @@ import { graphqlRequest } from "./graphqlRequest";
 import type { User, CreateUserInput, UpdateUserInput } from "../GQL/models/user";
 import type { LoginMutation, LoginMutationVariables, MeQuery, RegisterMutation, RegisterMutationVariables } from "../GQL/apis/apis";
 
+
+
 export const login = async (variables: LoginMutationVariables): Promise<LoginMutation> => {
   const mutation = `
     mutation ($uid: String!, $password: String!) {
@@ -24,6 +26,12 @@ export const login = async (variables: LoginMutationVariables): Promise<LoginMut
     }
   `;
   return graphqlRequest<LoginMutation, LoginMutationVariables>(mutation, variables);
+};
+
+export const logout = (navigate: (path: string) => void): void => {
+  localStorage.removeItem("token");
+  localStorage.removeItem("user");
+  navigate("/login");
 };
 
 export const register = async (variables: RegisterMutationVariables): Promise<RegisterMutation> => {

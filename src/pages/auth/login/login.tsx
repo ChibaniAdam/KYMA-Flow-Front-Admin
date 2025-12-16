@@ -2,12 +2,15 @@ import { useState } from 'react';
 import "./login.css"
 import { useNavigate } from 'react-router-dom';
 import { login } from '../../../services/userService';
+import hideIcon from '../../../assets/eye-password-hide.svg'
+import showIcon from '../../../assets/eye-password-show.svg'
 
 const Login = () => {
   const navigate = useNavigate();
 
   const [uid, setUid] = useState('');
   const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
@@ -25,12 +28,8 @@ const Login = () => {
       // Store user info
       localStorage.setItem('user', JSON.stringify(result.login.user));
 
-      console.log('Login successful:', result.login.user);
-
-      // Navigate to dashboard
       navigate("/dashboard");
     } catch (err: any) {
-      console.error('Login failed:', err);
       setError(err.message || 'Login failed. Please check your credentials.');
     } finally {
       setLoading(false);
@@ -50,8 +49,9 @@ const Login = () => {
 
         <form onSubmit={handleLogin} className="space-y-4">
           <div>
-            <label className="block text-gray-700">Username (UID)</label>
+            <label htmlFor='username-input' className="block text-gray-700">Username (UID)</label>
             <input
+              id="username-input"
               type="text"
               value={uid}
               onChange={(e) => setUid(e.target.value)}
@@ -62,16 +62,39 @@ const Login = () => {
             />
           </div>
           <div>
-            <label className="block text-gray-700">Password</label>
-            <input
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              className="w-full px-4 py-2 border focus:outline-none focus:ring-2 focus:ring-blue-400 login-input"
-              placeholder="Enter your password"
-              required
-              disabled={loading}
-            />
+            <label htmlFor='password-input' className="block text-gray-700">Password</label>
+              <div className="relative">
+                <input
+            id="password-input"
+            type={showPassword ? "text" : "password"}
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            className="w-full px-4 py-2 pr-10 border focus:outline-none focus:ring-2 focus:ring-blue-400 login-input"
+            placeholder="Enter your password"
+            required
+            disabled={loading}
+          />
+
+
+<button
+  type="button"
+  onClick={() => setShowPassword(prev => !prev)}
+  className="password-toggle-btn"
+  aria-label={showPassword ? "Hide password" : "Show password"}
+  aria-pressed={showPassword}
+  aria-controls="password-input"
+>
+  <img
+    src={showPassword ? hideIcon : showIcon}
+    alt=""
+    aria-hidden="true"
+    className="password-icon"
+  />
+</button>
+
+
+
+            </div>
           </div>
           <button
             type="submit"
