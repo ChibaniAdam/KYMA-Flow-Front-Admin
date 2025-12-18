@@ -1,9 +1,10 @@
 import GiteaIcon from "../../icons/gitea-icon";
+import GraphanaIcon from "../../icons/graphana-icon";
 
 const ITEMS = [
   { id: "gitea", label: "Gitea", subtitle: "Source Code Hosting", icon: <GiteaIcon /> },
   { id: "sonarqube", label: "SonarQube", subtitle: "Code Quality & Security", icon: <GiteaIcon /> },
-  { id: "settings", label: "Settings", subtitle: "Configure Tools", icon: <GiteaIcon /> },
+  { id: "graphana", label: "Graphana", subtitle: "Analytics & Monitoring", icon: <GraphanaIcon /> },
 ];
 
 export function LeftSidebarContent() {

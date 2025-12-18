@@ -40,12 +40,12 @@
   border-color: var(--light-blue-800);
 }
 
-.arrow {
+.select-arrow {
   margin-left: 0.25rem;
   transition: transform 0.3s ease, color 0.25s;
 }
 
-.arrow.rotate {
+.select-arrow.rotate {
   transform: rotate(180deg);
 }
 

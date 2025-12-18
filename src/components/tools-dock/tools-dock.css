@@ -10,7 +10,7 @@
 .vertical-sidebar nav {
   background: var(--bg-black-200);
   border-radius: 0 var(--br) var(--br) 0;
-  padding: 0.5rem;
+  padding: 0.5rem 0.25rem 0.5rem 0.25rem;
   border-right: 1px solid var(--dark-purple-400);
   flex: 0 0 var(--collapsed);
   transition: flex-basis 300ms ease;
@@ -38,6 +38,7 @@
 
 .hamburger {
   margin-top: 0.25rem;
+  margin-bottom: 0.5rem;
   margin-left: 0.6rem;
   position: relative;
   width: 20px;

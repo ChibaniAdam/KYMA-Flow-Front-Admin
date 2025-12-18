@@ -55,7 +55,7 @@ export const CustomSelect = ({
         onClick={() => !disabled && !loading && setOpen((prev) => !prev)}
       >
         <span>{value ? options.find((o) => o.value === value)?.label : placeholder}</span>
-        <div className={`arrow ${open ? "rotate" : ""}`}>
+        <div className={`select-arrow ${open ? "rotate" : ""}`}>
           {loading ? "…" : arrowIcon ?? "▼"}
         </div>
       </div>

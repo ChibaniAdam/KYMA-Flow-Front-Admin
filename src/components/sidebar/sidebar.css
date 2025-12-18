@@ -74,6 +74,7 @@
 
 
 .sidebar.right .sidebar-toggle .arrow.open {
+  margin-left: 0.25rem;
   transform: rotate(360deg);
 }
 .sidebar.left .sidebar-toggle .arrow.open {

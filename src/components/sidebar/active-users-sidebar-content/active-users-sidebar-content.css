@@ -78,7 +78,7 @@
 .right-sidebar-users .user-item[data-tooltip]::after {
   content: attr(data-tooltip);
   position: fixed;
-  right: calc(var(--collapsed) + 0.25rem);
+  right: calc(var(--collapsed) - 0.75rem);
   background: var(--bg-black-300);
   color: white;
   padding: 0.3rem 0.5rem;
