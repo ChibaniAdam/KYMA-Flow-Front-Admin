@@ -21,7 +21,6 @@ export const UsersDashboard = () => {
   const [page, setPage] = useState(1);
   const [pageSize] = useState(8);
   const [departments, setDepartments] = useState<Department[]>([]);
-  const [selected, setSelected] = useState<string[]>([]);
 
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);

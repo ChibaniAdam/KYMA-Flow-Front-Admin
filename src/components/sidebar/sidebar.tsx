@@ -21,7 +21,7 @@ export function Sidebar({ side = "left", children }: Readonly<SidebarProps>) {
     if (sidebarRef.current) {
       sidebarRef.current.style.width = isOpen
         ? `${sidebarRef.current.scrollWidth}px`
-        : "3.25rem";
+        : "2.25rem";
     }
   }, [isOpen, children]);
 

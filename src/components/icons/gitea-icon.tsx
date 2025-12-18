@@ -10,7 +10,6 @@ const GiteaIcon = ({ title, className, ...props }: IconProps) => (
     width="16"
     height="16"
     viewBox="5.67 143.05 628.65 387.55"
-    role={title ? "img" : "presentation"}
     aria-hidden={title ? undefined : true}
     aria-label={title}
     xmlns="http://www.w3.org/2000/svg"
