@@ -13,6 +13,11 @@
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 
+  --expanded: 16rem;
+  --collapsed: 3.25rem;
+  --item: 2.5rem;
+  --br: 0.75rem;
+
   --dark-purple: hsl(258, 63%, 48%);
   --light-purple: hsl(293, 84%, 76%);
   --light-blue: hsl(231, 96%, 62%);

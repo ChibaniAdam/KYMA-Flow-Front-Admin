@@ -1,0 +1,50 @@
+.left-sidebar-content {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+/* ---------- ITEM ---------- */
+.sidebar-item {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+
+  padding: 0.4rem 0.25rem;
+  cursor: pointer;
+
+  pointer-events: none;
+  transform: translateX(48px);
+
+  transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* ---------- ICON ---------- */
+.sidebar-icon {
+  min-width: 32px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  flex-shrink: 0;
+}
+
+/* ---------- LABEL ---------- */
+.sidebar-label {
+  white-space: nowrap;
+}
+
+
+
+/* ---------- OPEN STATE ---------- */
+.sidebar.open .sidebar-item {
+  transform: translateX(0);
+      pointer-events: auto;
+
+}
+
+.sidebar.open .sidebar-label {
+  opacity: 1;
+  transform: translateX(0);
+  transition-delay: 0.1s;
+
+}
