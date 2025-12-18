@@ -33,3 +33,23 @@ export interface UpdateUserInput {
   password?: string;
   repositories?: string[];
 }
+
+export interface UserPage {
+  items: User[];
+  total: number;
+  page: number;
+  limit: number;
+  hasNextPage: boolean;
+}
+
+export interface UserFilter {
+  department?: string;
+  cn?: string;
+  mail?: string;
+  uid?: string;
+}
+
+export interface PaginationInput {
+  page: number;
+  limit: number;
+}

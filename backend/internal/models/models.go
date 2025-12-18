@@ -33,6 +33,20 @@ type Group struct {
 	DN        string   `json:"dn"`
 }
 
+
+type Pagination struct {
+	Page  int
+	Limit int
+}
+
+type UserPage struct {
+	Items       []*User
+	Total       int
+	Page        int
+	Limit       int
+	HasNextPage bool
+}
+
 // CreateUserInput contains fields for creating a new user
 type CreateUserInput struct {
 	UID          string   `json:"uid"`

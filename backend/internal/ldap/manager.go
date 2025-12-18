@@ -173,6 +173,41 @@ func (m *Manager) HealthCheck(ctx context.Context) error {
 	return nil
 }
 
+func (m *Manager) ListUsersPaginated(
+	ctx context.Context,
+	filter *models.SearchFilter,
+	page int,
+	limit int,
+) (*models.UserPage, error) {
+
+	users, err := m.ListUsers(ctx, filter)
+	if err != nil {
+		return nil, err
+	}
+
+	total := len(users)
+	start := (page - 1) * limit
+	end := start + limit
+
+	if start > total {
+		start = total
+	}
+	if end > total {
+		end = total
+	}
+
+	items := users[start:end]
+
+	return &models.UserPage{
+		Items:       items,
+		Total:       total,
+		Page:        page,
+		Limit:       limit,
+		HasNextPage: end < total,
+	}, nil
+}
+
+
 // GetStats returns connection pool statistics
 func (m *Manager) GetStats() *models.Stats {
 	m.mu.RLock()

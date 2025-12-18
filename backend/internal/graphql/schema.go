@@ -29,6 +29,54 @@ type Claims struct {
 	jwt.RegisteredClaims
 }
 
+// Pagination schema
+func (s *Schema) definePaginationInput() *graphql.InputObject {
+	return graphql.NewInputObject(graphql.InputObjectConfig{
+		Name: "PaginationInput",
+		Fields: graphql.InputObjectConfigFieldMap{
+			"page":  &graphql.InputObjectFieldConfig{Type: graphql.Int},  // default 1
+			"limit": &graphql.InputObjectFieldConfig{Type: graphql.Int},  // default 10 / 20
+		},
+	})
+}
+
+// Extend SearchFilterInput
+func (s *Schema) defineSearchFilterInput() *graphql.InputObject {
+	return graphql.NewInputObject(graphql.InputObjectConfig{
+		Name: "SearchFilterInput",
+		Fields: graphql.InputObjectConfigFieldMap{
+			"department": &graphql.InputObjectFieldConfig{Type: graphql.String},
+			"mail":       &graphql.InputObjectFieldConfig{Type: graphql.String},
+			"cn":         &graphql.InputObjectFieldConfig{Type: graphql.String},
+		},
+	})
+}
+
+// User page schema
+func (s *Schema) defineUserPageType(userType *graphql.Object) *graphql.Object {
+	return graphql.NewObject(graphql.ObjectConfig{
+		Name: "UserPage",
+		Fields: graphql.Fields{
+			"items": &graphql.Field{
+				Type: graphql.NewList(userType),
+			},
+			"total": &graphql.Field{
+				Type: graphql.Int,
+			},
+			"page": &graphql.Field{
+				Type: graphql.Int,
+			},
+			"limit": &graphql.Field{
+				Type: graphql.Int,
+			},
+			"hasNextPage": &graphql.Field{
+				Type: graphql.Boolean,
+			},
+		},
+	})
+}
+
+
 // NewSchema creates a new GraphQL schema
 func NewSchema(ldapMgr *ldap.Manager, cfg *config.Config, logger *logrus.Logger) *Schema {
 	s := &Schema{
@@ -44,13 +92,15 @@ func NewSchema(ldapMgr *ldap.Manager, cfg *config.Config, logger *logrus.Logger)
 	authPayloadType := s.defineAuthPayloadType(userType)
 	statsType := s.defineStatsType()
 	healthType := s.defineHealthType()
+	userPageType := s.defineUserPageType(userType)
 
 	// Define input types
 	createUserInputType := s.defineCreateUserInput()
 	updateUserInputType := s.defineUpdateUserInput()
 	createDepartmentInputType := s.defineCreateDepartmentInput()
 	searchFilterInputType := s.defineSearchFilterInput()
-
+	paginationInputType := s.definePaginationInput()
+	
 	// Define root query
 	queryType := graphql.NewObject(graphql.ObjectConfig{
 		Name: "Query",
@@ -69,10 +119,13 @@ func NewSchema(ldapMgr *ldap.Manager, cfg *config.Config, logger *logrus.Logger)
 				Resolve: s.resolveUser,
 			},
 			"users": &graphql.Field{
-				Type: graphql.NewList(userType),
+				Type: userPageType,
 				Args: graphql.FieldConfigArgument{
 					"filter": &graphql.ArgumentConfig{
 						Type: searchFilterInputType,
+					},
+					"pagination": &graphql.ArgumentConfig{
+						Type: paginationInputType,
 					},
 				},
 				Resolve: s.resolveUsers,
@@ -246,6 +299,39 @@ func NewSchema(ldapMgr *ldap.Manager, cfg *config.Config, logger *logrus.Logger)
 	return s
 }
 
+
+func (s *Schema) resolveUsers(p graphql.ResolveParams) (interface{}, error) {
+	// Filters
+	var filter *models.SearchFilter
+	if filterInput, ok := p.Args["filter"].(map[string]interface{}); ok {
+		filter = &models.SearchFilter{}
+		if v, ok := filterInput["department"].(string); ok {
+			filter.Department = v
+		}
+		if v, ok := filterInput["mail"].(string); ok {
+			filter.Mail = v
+		}
+		if v, ok := filterInput["cn"].(string); ok {
+			filter.CN = v
+		}
+	}
+
+	// Pagination defaults
+	page := 1
+	limit := 10
+
+	if pArgs, ok := p.Args["pagination"].(map[string]interface{}); ok {
+		if v, ok := pArgs["page"].(int); ok && v > 0 {
+			page = v
+		}
+		if v, ok := pArgs["limit"].(int); ok && v > 0 {
+			limit = v
+		}
+	}
+
+	return s.ldapMgr.ListUsersPaginated(p.Context, filter, page, limit)
+}
+
 // GetSchema returns the GraphQL schema
 func (s *Schema) GetSchema() graphql.Schema {
 	return s.schema
@@ -377,17 +463,6 @@ func (s *Schema) defineCreateDepartmentInput() *graphql.InputObject {
 	})
 }
 
-func (s *Schema) defineSearchFilterInput() *graphql.InputObject {
-	return graphql.NewInputObject(graphql.InputObjectConfig{
-		Name: "SearchFilterInput",
-		Fields: graphql.InputObjectConfigFieldMap{
-			"department": &graphql.InputObjectFieldConfig{Type: graphql.String},
-			"mail":       &graphql.InputObjectFieldConfig{Type: graphql.String},
-			"cn":         &graphql.InputObjectFieldConfig{Type: graphql.String},
-		},
-	})
-}
-
 // Query Resolvers
 
 func (s *Schema) resolveMe(p graphql.ResolveParams) (interface{}, error) {
@@ -403,22 +478,6 @@ func (s *Schema) resolveUser(p graphql.ResolveParams) (interface{}, error) {
 	return s.ldapMgr.GetUser(p.Context, uid)
 }
 
-func (s *Schema) resolveUsers(p graphql.ResolveParams) (interface{}, error) {
-	var filter *models.SearchFilter
-	if filterInput, ok := p.Args["filter"].(map[string]interface{}); ok {
-		filter = &models.SearchFilter{}
-		if dept, ok := filterInput["department"].(string); ok {
-			filter.Department = dept
-		}
-		if mail, ok := filterInput["mail"].(string); ok {
-			filter.Mail = mail
-		}
-		if cn, ok := filterInput["cn"].(string); ok {
-			filter.CN = cn
-		}
-	}
-	return s.ldapMgr.ListUsers(p.Context, filter)
-}
 
 func (s *Schema) resolveDepartment(p graphql.ResolveParams) (interface{}, error) {
 	ou := p.Args["ou"].(string)

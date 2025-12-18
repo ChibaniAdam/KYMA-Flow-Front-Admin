@@ -6,7 +6,7 @@ import {
   deleteUser,
 } from "../../services/userService";
 
-import type { User, CreateUserInput, UpdateUserInput } from "../../GQL/models/user";
+import type { User, CreateUserInput, UpdateUserInput, UserPage } from "../../GQL/models/user";
 import { UserForm } from "./user-form/user-form";
 import { listDepartments } from "../../services/departmentService";
 import type { Department } from "../../GQL/models/department";
@@ -17,8 +17,9 @@ import { FilterBar } from "../../components/filter-bar/filter-bar";
 import { DataTable } from "../../components/data-table/data-table";
 
 export const UsersDashboard = () => {
-  const [users, setUsers] = useState<User[]>([]);
-  const [filteredUsers, setFilteredUsers] = useState<User[]>([]);
+  const [usersPage, setUsersPage] = useState<UserPage | null>(null);
+  const [page, setPage] = useState(1);
+  const [pageSize] = useState(8);
   const [departments, setDepartments] = useState<Department[]>([]);
   const [selected, setSelected] = useState<string[]>([]);
 
@@ -30,6 +31,8 @@ export const UsersDashboard = () => {
   const [deleting, setDeleting] = useState(false);
 
   const [search, setSearch] = useState("");
+  const [searchByMail, setSearchByMail] = useState("");
+
   const [departmentFilter, setDepartmentFilter] = useState("");
 
   const [formData, setFormData] = useState<CreateUserInput | UpdateUserInput>({
@@ -44,15 +47,23 @@ export const UsersDashboard = () => {
   });
 
   const fetchUsers = async () => {
-    setLoading(true);
     try {
-      const data = await listUsers();
-      setUsers(data);
-      setFilteredUsers(data);
+      const filter: any = {};
+      if (departmentFilter) {filter.department = departmentFilter;}
+      if (search.trim()) filter.cn = search.trim().replace(" ",".");
+      if (searchByMail.trim()) filter.mail = searchByMail.trim();
+
+      const data = await listUsers(filter, {
+        page,
+        limit: pageSize,
+      });
+
+      setUsersPage(data);
     } finally {
       setLoading(false);
     }
   };
+
 
   const fetchDepartments = async () => {
     const data = await listDepartments();
@@ -64,26 +75,10 @@ export const UsersDashboard = () => {
     fetchDepartments();
   }, []);
 
-
   useEffect(() => {
-    let u = [...users];
+  fetchUsers();
+  }, [page, search, departmentFilter, searchByMail]);
 
-    if (departmentFilter)
-      u = u.filter((usr) => usr.department === departmentFilter);
-
-    if (search.trim()) {
-      const s = search.toLowerCase();
-      u = u.filter(
-        (usr) =>
-          usr.uid.toLowerCase().includes(s) ||
-          usr.givenName.toLowerCase().includes(s) ||
-          usr.sn.toLowerCase().includes(s) ||
-          usr.mail.toLowerCase().includes(s)
-      );
-    }
-
-    setFilteredUsers(u);
-  }, [search, departmentFilter, users]);
 
 
   const handleCreateClick = () => {
@@ -152,9 +147,16 @@ export const UsersDashboard = () => {
               {
                 key: "search",
                 type: "text",
-                placeholder: "Search by name, UID, email...",
+                placeholder: "Search by name",
                 value: search,
                 onChange: setSearch,
+              },
+              {
+                key: "searchMail",
+                type: "text",
+                placeholder: "Search by email...",
+                value: searchByMail,
+                onChange: setSearchByMail,
               },
               {
                 key: "department",
@@ -177,10 +179,12 @@ export const UsersDashboard = () => {
 
  <div className="table-wrapper">
 <DataTable<User>
-  data={filteredUsers}
+  data={usersPage?.items ?? []}
   loading={loading}
-  onSelectionChange={setSelected}
-  pageSize={8}
+  page={page}
+  pageSize={pageSize}
+  total={usersPage?.total ?? 0}
+  onPageChange={setPage}
   columns={[
     { key: "uid", header: "UID", sortable: true },
     {
@@ -195,6 +199,7 @@ export const UsersDashboard = () => {
   onEdit={handleEditClick}
   onDelete={(u) => handleDelete(u.uid)}
 />
+
 </div>
 
       {showModal && (

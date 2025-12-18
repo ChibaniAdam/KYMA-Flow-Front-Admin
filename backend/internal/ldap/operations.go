@@ -101,7 +101,9 @@ func (m *Manager) ListUsers(ctx context.Context, filter *models.SearchFilter) ([
 			filters = append(filters, fmt.Sprintf("(departmentNumber=%s)", ldap.EscapeFilter(filter.Department)))
 		}
 		if filter.Mail != "" {
-			filters = append(filters, fmt.Sprintf("(mail=%s)", ldap.EscapeFilter(filter.Mail)))
+			filters = append(filters,
+				fmt.Sprintf("(mail=*%s*)", ldap.EscapeFilter(filter.Mail)),
+			)
 		}
 		if filter.CN != "" {
 			filters = append(filters, fmt.Sprintf("(cn=*%s*)", ldap.EscapeFilter(filter.CN)))

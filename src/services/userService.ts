@@ -1,5 +1,5 @@
 import { graphqlRequest } from "./graphqlRequest";
-import type { User, CreateUserInput, UpdateUserInput } from "../GQL/models/user";
+import type { User, CreateUserInput, UpdateUserInput, UserPage, UserFilter, PaginationInput } from "../GQL/models/user";
 import type { LoginMutation, LoginMutationVariables, MeQuery, RegisterMutation, RegisterMutationVariables } from "../GQL/apis/apis";
 
 
@@ -92,15 +92,29 @@ export const getMe = async (): Promise<MeQuery> => {
   return graphqlRequest<MeQuery>(query);
 };
 
-export async function listUsers(filter?: Record<string, string>): Promise<User[]> {
+export async function listUsers(
+  filter?: UserFilter,
+  pagination?: PaginationInput
+): Promise<UserPage> {
   const query = `
-    query ($filter: SearchFilterInput) {
-      users(filter: $filter) {
-        uid cn sn givenName mail department uidNumber gidNumber homeDirectory repositories dn
+    query ($filter: SearchFilterInput, $pagination: PaginationInput) {
+      users(filter: $filter, pagination: $pagination) {
+        items {
+          uid cn sn givenName mail department
+          uidNumber gidNumber homeDirectory repositories dn
+        }
+        total
+        page
+        limit
+        hasNextPage
       }
     }
   `;
-  return graphqlRequest<{ users: User[] }, { filter?: Record<string, string> }>(query, { filter }).then(res => res.users);
+
+  return graphqlRequest<
+    { users: UserPage },
+    { filter?: UserFilter; pagination?: PaginationInput }
+  >(query, { filter, pagination }).then(res => res.users);
 }
 
 export async function createUser(input: CreateUserInput): Promise<User> {

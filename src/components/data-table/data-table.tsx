@@ -17,7 +17,10 @@ interface DataTableProps<T extends { uid: string }> {
   onEdit?: (row: T) => void;
   onDelete?: (row: T) => void;
 
-  pageSize?: number;
+  page: number;
+  pageSize: number;
+  total: number;
+  onPageChange: (page: number) => void;
 
   selectable?: boolean;
   selectedRows?: string[];
@@ -31,7 +34,10 @@ export function DataTable<T extends { uid: string }>({
   emptyMessage = "No data found.",
   onEdit,
   onDelete,
+  page,
   pageSize = 10,
+  total,
+  onPageChange,
   selectable = false,
   selectedRows = [],
   onSelectionChange,
@@ -64,13 +70,10 @@ export function DataTable<T extends { uid: string }>({
   };
 
   /* ───────────── Pagination ───────────── */
-  const [page, setPage] = useState(1);
-  const totalPages = Math.ceil(sortedData.length / pageSize);
+  const totalPages = Math.ceil(total / pageSize);
+  const paginatedData = data;
 
-  const paginatedData = useMemo(() => {
-    const start = (page - 1) * pageSize;
-    return sortedData.slice(start, start + pageSize);
-  }, [sortedData, page, pageSize]);
+
 
   /* ───────────── Selection ───────────── */
   const toggleRow = (id: string) => {
@@ -203,31 +206,26 @@ export function DataTable<T extends { uid: string }>({
       {/* Pagination */}
       {totalPages > 1 && (
         <div className="table-pagination">
-          <button disabled={page === 1} onClick={() => setPage(1)}>
-            ⏮
-          </button>
-          <button disabled={page === 1} onClick={() => setPage(page - 1)}>
-            ◀
-          </button>
+          <button disabled={page === 1} onClick={() => onPageChange(1)}>⏮</button>
+          <button disabled={page === 1} onClick={() => onPageChange(page - 1)}>◀</button>
 
-          <span>
-            Page {page} / {totalPages}
-          </span>
+          <span>Page {page} / {totalPages}</span>
 
           <button
             disabled={page === totalPages}
-            onClick={() => setPage(page + 1)}
+            onClick={() => onPageChange(page + 1)}
           >
             ▶
           </button>
           <button
             disabled={page === totalPages}
-            onClick={() => setPage(totalPages)}
+            onClick={() => onPageChange(totalPages)}
           >
             ⏭
           </button>
         </div>
       )}
+
     </>
   );
 }
