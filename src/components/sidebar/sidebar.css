@@ -28,12 +28,15 @@
 /* -------- RIGHT -------- */
 .sidebar.right {
   right: 0;
+  border:1px;
   border-left: 1px solid var(--dark-purple-400);
   border-radius: 8px 0 0 8px;
 }
 
 .sidebar.right.open {
   right: 0;
+  border-top: 1px solid var(--dark-purple-400);
+  border-bottom: 1px solid var(--dark-purple-400);
 }
 
 /* -------- TOGGLE -------- */

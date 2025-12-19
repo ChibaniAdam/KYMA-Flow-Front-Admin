@@ -11,6 +11,7 @@
   background: var(--bg-black-200);
   border-radius: 0 var(--br) var(--br) 0;
   padding: 0.5rem 0.25rem 0.5rem 0.25rem;
+  border:1px;
   border-right: 1px solid var(--dark-purple-400);
   flex: 0 0 var(--collapsed);
   transition: flex-basis 300ms ease;
@@ -20,6 +21,8 @@
 /* ---------- OPEN ---------- */
 .vertical-sidebar.open nav {
   flex-basis: var(--expanded);
+  border-top: 1px solid var(--dark-purple-400);
+  border-bottom: 1px solid var(--dark-purple-400);
 }
 
 /* ---------- TOGGLE ---------- */

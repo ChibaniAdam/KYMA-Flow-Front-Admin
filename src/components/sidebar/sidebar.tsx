@@ -33,7 +33,7 @@ export function Sidebar({ side = "left", children }: Readonly<SidebarProps>) {
   });
 
   return (
-    <aside ref={sidebarRef} className={`sidebar ${side}`}>
+    <aside ref={sidebarRef} className={`sidebar ${side} ${isOpen? "open" : ""}`}>
       <button
         type="button"
         className="sidebar-toggle"
