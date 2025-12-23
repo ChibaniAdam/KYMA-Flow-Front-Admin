@@ -1,0 +1,29 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: gitea-service-config
+  namespace: dev-platform
+data:
+  # Gitea configuration
+  GITEA_URL: "http://gitea.dev-platform.svc.cluster.local:3000"
+
+  # LDAP Manager service URL (inter-service communication)
+  LDAP_MANAGER_URL: "http://ldap-manager.dev-platform.svc.cluster.local:8080"
+
+  # Server configuration
+  PORT: "8081"
+  METRICS_PORT: "9091"
+  ENVIRONMENT: "production"
+  LOG_LEVEL: "info"
+
+  # HTTP client timeout
+  HTTP_CLIENT_TIMEOUT: "30s"
+
+  # JWT configuration
+  JWT_EXPIRATION: "24h"
+
+  # CORS configuration
+  CORS_ORIGINS: "*"
+
+  # Graceful shutdown
+  SHUTDOWN_TIMEOUT: "30"
