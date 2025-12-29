@@ -15,10 +15,11 @@ import (
 
 // Schema represents the GraphQL schema
 type Schema struct {
-	schema     graphql.Schema
-	ldapMgr    *ldap.Manager
-	config     *config.Config
-	logger     *logrus.Logger
+	schema       graphql.Schema
+	ldapMgr      *ldap.Manager
+	giteaService interface{} // Will be set to *gitea.Service
+	config       *config.Config
+	logger       *logrus.Logger
 }
 
 // JWT Claims
@@ -44,6 +45,8 @@ func NewSchema(ldapMgr *ldap.Manager, cfg *config.Config, logger *logrus.Logger)
 	authPayloadType := s.defineAuthPayloadType(userType)
 	statsType := s.defineStatsType()
 	healthType := s.defineHealthType()
+	giteaRepoType := s.defineGiteaRepositoryType()
+	repoStatsType := s.defineRepositoryStatsType()
 
 	// Define input types
 	createUserInputType := s.defineCreateUserInput()
@@ -115,6 +118,38 @@ func NewSchema(ldapMgr *ldap.Manager, cfg *config.Config, logger *logrus.Logger)
 			"stats": &graphql.Field{
 				Type:    statsType,
 				Resolve: s.resolveStats,
+			},
+			"myGiteaRepositories": &graphql.Field{
+				Type:    graphql.NewList(giteaRepoType),
+				Resolve: s.resolveMyGiteaRepositories,
+			},
+			"giteaRepository": &graphql.Field{
+				Type: giteaRepoType,
+				Args: graphql.FieldConfigArgument{
+					"owner": &graphql.ArgumentConfig{
+						Type: graphql.NewNonNull(graphql.String),
+					},
+					"name": &graphql.ArgumentConfig{
+						Type: graphql.NewNonNull(graphql.String),
+					},
+				},
+				Resolve: s.resolveGiteaRepository,
+			},
+			"searchGiteaRepositories": &graphql.Field{
+				Type: graphql.NewList(giteaRepoType),
+				Args: graphql.FieldConfigArgument{
+					"query": &graphql.ArgumentConfig{
+						Type: graphql.String,
+					},
+					"limit": &graphql.ArgumentConfig{
+						Type: graphql.Int,
+					},
+				},
+				Resolve: s.resolveSearchGiteaRepositories,
+			},
+			"giteaRepositoryStats": &graphql.Field{
+				Type:    repoStatsType,
+				Resolve: s.resolveGiteaRepositoryStats,
 			},
 		},
 	})
@@ -251,23 +286,28 @@ func (s *Schema) GetSchema() graphql.Schema {
 	return s.schema
 }
 
+// SetGiteaService sets the Gitea service (called after initialization to avoid import cycle)
+func (s *Schema) SetGiteaService(giteaService interface{}) {
+	s.giteaService = giteaService
+}
+
 // Type Definitions
 
 func (s *Schema) defineUserType() *graphql.Object {
 	return graphql.NewObject(graphql.ObjectConfig{
 		Name: "User",
 		Fields: graphql.Fields{
-			"uid":          &graphql.Field{Type: graphql.String},
-			"cn":           &graphql.Field{Type: graphql.String},
-			"sn":           &graphql.Field{Type: graphql.String},
-			"givenName":    &graphql.Field{Type: graphql.String},
-			"mail":         &graphql.Field{Type: graphql.String},
-			"department":   &graphql.Field{Type: graphql.String},
-			"uidNumber":    &graphql.Field{Type: graphql.Int},
-			"gidNumber":    &graphql.Field{Type: graphql.Int},
+			"uid":           &graphql.Field{Type: graphql.String},
+			"cn":            &graphql.Field{Type: graphql.String},
+			"sn":            &graphql.Field{Type: graphql.String},
+			"givenName":     &graphql.Field{Type: graphql.String},
+			"mail":          &graphql.Field{Type: graphql.String},
+			"department":    &graphql.Field{Type: graphql.String},
+			"uidNumber":     &graphql.Field{Type: graphql.Int},
+			"gidNumber":     &graphql.Field{Type: graphql.Int},
 			"homeDirectory": &graphql.Field{Type: graphql.String},
-			"repositories": &graphql.Field{Type: graphql.NewList(graphql.String)},
-			"dn":           &graphql.Field{Type: graphql.String},
+			"repositories":  &graphql.Field{Type: graphql.NewList(graphql.String)},
+			"dn":            &graphql.Field{Type: graphql.String},
 		},
 	})
 }
@@ -327,6 +367,63 @@ func (s *Schema) defineHealthType() *graphql.Object {
 			"status":    &graphql.Field{Type: graphql.String},
 			"timestamp": &graphql.Field{Type: graphql.Int},
 			"ldap":      &graphql.Field{Type: graphql.Boolean},
+			"gitea":     &graphql.Field{Type: graphql.Boolean},
+		},
+	})
+}
+
+func (s *Schema) defineGiteaRepositoryType() *graphql.Object {
+	ownerType := graphql.NewObject(graphql.ObjectConfig{
+		Name: "RepositoryOwner",
+		Fields: graphql.Fields{
+			"id":        &graphql.Field{Type: graphql.Int},
+			"login":     &graphql.Field{Type: graphql.String},
+			"fullName":  &graphql.Field{Type: graphql.String},
+			"email":     &graphql.Field{Type: graphql.String},
+			"avatarUrl": &graphql.Field{Type: graphql.String},
+		},
+	})
+
+	return graphql.NewObject(graphql.ObjectConfig{
+		Name: "GiteaRepository",
+		Fields: graphql.Fields{
+			"id":            &graphql.Field{Type: graphql.Int},
+			"name":          &graphql.Field{Type: graphql.String},
+			"fullName":      &graphql.Field{Type: graphql.String},
+			"description":   &graphql.Field{Type: graphql.String},
+			"private":       &graphql.Field{Type: graphql.Boolean},
+			"fork":          &graphql.Field{Type: graphql.Boolean},
+			"htmlUrl":       &graphql.Field{Type: graphql.String},
+			"sshUrl":        &graphql.Field{Type: graphql.String},
+			"cloneUrl":      &graphql.Field{Type: graphql.String},
+			"defaultBranch": &graphql.Field{Type: graphql.String},
+			"language":      &graphql.Field{Type: graphql.String},
+			"stars":         &graphql.Field{Type: graphql.Int},
+			"forks":         &graphql.Field{Type: graphql.Int},
+			"size":          &graphql.Field{Type: graphql.Int},
+			"createdAt":     &graphql.Field{Type: graphql.String},
+			"updatedAt":     &graphql.Field{Type: graphql.String},
+			"owner":         &graphql.Field{Type: ownerType},
+		},
+	})
+}
+
+func (s *Schema) defineRepositoryStatsType() *graphql.Object {
+	languageDistType := graphql.NewObject(graphql.ObjectConfig{
+		Name: "LanguageDistribution",
+		Fields: graphql.Fields{
+			"language": &graphql.Field{Type: graphql.String},
+			"count":    &graphql.Field{Type: graphql.Int},
+		},
+	})
+
+	return graphql.NewObject(graphql.ObjectConfig{
+		Name: "RepositoryStats",
+		Fields: graphql.Fields{
+			"totalCount":   &graphql.Field{Type: graphql.Int},
+			"privateCount": &graphql.Field{Type: graphql.Int},
+			"publicCount":  &graphql.Field{Type: graphql.Int},
+			"languages":    &graphql.Field{Type: graphql.NewList(languageDistType)},
 		},
 	})
 }
@@ -667,4 +764,286 @@ func (s *Schema) ExtractUserFromToken(tokenString string) (*models.User, error) 
 	// Fetch full user details from LDAP
 	ctx := context.Background()
 	return s.ldapMgr.GetUser(ctx, claims.UID)
+}
+
+// Gitea Repository Resolvers
+
+func (s *Schema) resolveMyGiteaRepositories(p graphql.ResolveParams) (interface{}, error) {
+	user, ok := p.Context.Value("user").(*models.User)
+	if !ok {
+		return nil, fmt.Errorf("unauthorized")
+	}
+
+	if s.giteaService == nil {
+		return nil, fmt.Errorf("gitea service not initialized")
+	}
+
+	// Type assert to the actual service type
+	type GiteaService interface {
+		GetUserRepositories(ctx context.Context, user *models.User) (interface{}, error)
+	}
+
+	service, ok := s.giteaService.(GiteaService)
+	if !ok {
+		return nil, fmt.Errorf("invalid gitea service type")
+	}
+
+	repos, err := service.GetUserRepositories(p.Context, user)
+	if err != nil {
+		s.logger.WithError(err).Error("Failed to get user repositories")
+		return nil, fmt.Errorf("failed to get repositories: %w", err)
+	}
+
+	return s.convertReposToModels(repos), nil
+}
+
+func (s *Schema) resolveGiteaRepository(p graphql.ResolveParams) (interface{}, error) {
+	user, ok := p.Context.Value("user").(*models.User)
+	if !ok {
+		return nil, fmt.Errorf("unauthorized")
+	}
+
+	owner := p.Args["owner"].(string)
+	name := p.Args["name"].(string)
+
+	if s.giteaService == nil {
+		return nil, fmt.Errorf("gitea service not initialized")
+	}
+
+	type GiteaService interface {
+		GetRepository(ctx context.Context, user *models.User, owner, name string) (interface{}, error)
+	}
+
+	service, ok := s.giteaService.(GiteaService)
+	if !ok {
+		return nil, fmt.Errorf("invalid gitea service type")
+	}
+
+	repo, err := service.GetRepository(p.Context, user, owner, name)
+	if err != nil {
+		s.logger.WithError(err).Error("Failed to get repository")
+		return nil, fmt.Errorf("failed to get repository: %w", err)
+	}
+
+	return s.convertRepoToModel(repo), nil
+}
+
+func (s *Schema) resolveSearchGiteaRepositories(p graphql.ResolveParams) (interface{}, error) {
+	user, ok := p.Context.Value("user").(*models.User)
+	if !ok {
+		return nil, fmt.Errorf("unauthorized")
+	}
+
+	query := ""
+	if q, ok := p.Args["query"].(string); ok {
+		query = q
+	}
+
+	limit := 50
+	if l, ok := p.Args["limit"].(int); ok {
+		limit = l
+	}
+
+	if s.giteaService == nil {
+		return nil, fmt.Errorf("gitea service not initialized")
+	}
+
+	type GiteaService interface {
+		SearchUserRepositories(ctx context.Context, user *models.User, query string, limit int) (interface{}, error)
+	}
+
+	service, ok := s.giteaService.(GiteaService)
+	if !ok {
+		return nil, fmt.Errorf("invalid gitea service type")
+	}
+
+	repos, err := service.SearchUserRepositories(p.Context, user, query, limit)
+	if err != nil {
+		s.logger.WithError(err).Error("Failed to search repositories")
+		return nil, fmt.Errorf("failed to search repositories: %w", err)
+	}
+
+	return s.convertReposToModels(repos), nil
+}
+
+func (s *Schema) resolveGiteaRepositoryStats(p graphql.ResolveParams) (interface{}, error) {
+	user, ok := p.Context.Value("user").(*models.User)
+	if !ok {
+		return nil, fmt.Errorf("unauthorized")
+	}
+
+	if s.giteaService == nil {
+		return nil, fmt.Errorf("gitea service not initialized")
+	}
+
+	type GiteaService interface {
+		GetRepositoryStats(ctx context.Context, user *models.User) (interface{}, error)
+	}
+
+	service, ok := s.giteaService.(GiteaService)
+	if !ok {
+		return nil, fmt.Errorf("invalid gitea service type")
+	}
+
+	stats, err := service.GetRepositoryStats(p.Context, user)
+	if err != nil {
+		s.logger.WithError(err).Error("Failed to get repository stats")
+		return nil, fmt.Errorf("failed to get stats: %w", err)
+	}
+
+	return s.convertStatsToModel(stats), nil
+}
+
+// Helper functions to convert Gitea types to GraphQL models
+
+func (s *Schema) convertRepoToModel(repo interface{}) *models.GiteaRepository {
+	type Repository struct {
+		ID            int64
+		Name          string
+		FullName      string
+		Description   string
+		Private       bool
+		Fork          bool
+		HTMLURL       string
+		SSHURL        string
+		CloneURL      string
+		DefaultBranch string
+		Language      string
+		Stars         int
+		Forks         int
+		Size          int
+		CreatedAt     time.Time
+		UpdatedAt     time.Time
+		Owner         struct {
+			ID        int64
+			Login     string
+			FullName  string
+			Email     string
+			AvatarURL string
+		}
+	}
+
+	r, ok := repo.(*Repository)
+	if !ok {
+		return nil
+	}
+
+	return &models.GiteaRepository{
+		ID:            r.ID,
+		Name:          r.Name,
+		FullName:      r.FullName,
+		Description:   r.Description,
+		Private:       r.Private,
+		Fork:          r.Fork,
+		HTMLURL:       r.HTMLURL,
+		SSHURL:        r.SSHURL,
+		CloneURL:      r.CloneURL,
+		DefaultBranch: r.DefaultBranch,
+		Language:      r.Language,
+		Stars:         r.Stars,
+		Forks:         r.Forks,
+		Size:          r.Size,
+		CreatedAt:     r.CreatedAt.Format(time.RFC3339),
+		UpdatedAt:     r.UpdatedAt.Format(time.RFC3339),
+		Owner: models.RepositoryOwner{
+			ID:        r.Owner.ID,
+			Login:     r.Owner.Login,
+			FullName:  r.Owner.FullName,
+			Email:     r.Owner.Email,
+			AvatarURL: r.Owner.AvatarURL,
+		},
+	}
+}
+
+func (s *Schema) convertReposToModels(repos interface{}) []*models.GiteaRepository {
+	type Repository struct {
+		ID            int64
+		Name          string
+		FullName      string
+		Description   string
+		Private       bool
+		Fork          bool
+		HTMLURL       string
+		SSHURL        string
+		CloneURL      string
+		DefaultBranch string
+		Language      string
+		Stars         int
+		Forks         int
+		Size          int
+		CreatedAt     time.Time
+		UpdatedAt     time.Time
+		Owner         struct {
+			ID        int64
+			Login     string
+			FullName  string
+			Email     string
+			AvatarURL string
+		}
+	}
+
+	repoList, ok := repos.([]*Repository)
+	if !ok {
+		return []*models.GiteaRepository{}
+	}
+
+	result := make([]*models.GiteaRepository, len(repoList))
+	for i, r := range repoList {
+		result[i] = &models.GiteaRepository{
+			ID:            r.ID,
+			Name:          r.Name,
+			FullName:      r.FullName,
+			Description:   r.Description,
+			Private:       r.Private,
+			Fork:          r.Fork,
+			HTMLURL:       r.HTMLURL,
+			SSHURL:        r.SSHURL,
+			CloneURL:      r.CloneURL,
+			DefaultBranch: r.DefaultBranch,
+			Language:      r.Language,
+			Stars:         r.Stars,
+			Forks:         r.Forks,
+			Size:          r.Size,
+			CreatedAt:     r.CreatedAt.Format(time.RFC3339),
+			UpdatedAt:     r.UpdatedAt.Format(time.RFC3339),
+			Owner: models.RepositoryOwner{
+				ID:        r.Owner.ID,
+				Login:     r.Owner.Login,
+				FullName:  r.Owner.FullName,
+				Email:     r.Owner.Email,
+				AvatarURL: r.Owner.AvatarURL,
+			},
+		}
+	}
+
+	return result
+}
+
+func (s *Schema) convertStatsToModel(stats interface{}) *models.RepositoryStats {
+	type Stats struct {
+		TotalCount   int
+		PrivateCount int
+		PublicCount  int
+		Languages    map[string]int
+	}
+
+	st, ok := stats.(*Stats)
+	if !ok {
+		return nil
+	}
+
+	languages := make([]models.LanguageDistribution, 0, len(st.Languages))
+	for lang, count := range st.Languages {
+		languages = append(languages, models.LanguageDistribution{
+			Language: lang,
+			Count:    count,
+		})
+	}
+
+	return &models.RepositoryStats{
+		TotalCount:   st.TotalCount,
+		PrivateCount: st.PrivateCount,
+		PublicCount:  st.PublicCount,
+		Languages:    languages,
+	}
 }

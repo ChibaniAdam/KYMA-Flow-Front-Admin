@@ -46,38 +46,77 @@ func NewSchema(giteaService *gitea.Service, ldapClient *ldap.Client, giteaClient
 	giteaRepoType := s.defineGiteaRepositoryType()
 	repoStatsType := s.defineRepositoryStatsType()
 	healthType := s.defineHealthType()
+	paginatedReposType := s.definePaginatedRepositoriesType(giteaRepoType)
 
 	// Define root query
 	queryType := graphql.NewObject(graphql.ObjectConfig{
 		Name: "Query",
 		Fields: graphql.Fields{
-			"myRepositories": &graphql.Field{
-				Type:    graphql.NewList(giteaRepoType),
-				Resolve: s.resolveMyRepositories,
-			},
-			"repository": &graphql.Field{
-				Type: giteaRepoType,
+			"listRepositories": &graphql.Field{
+				Type: paginatedReposType,
 				Args: graphql.FieldConfigArgument{
-					"owner": &graphql.ArgumentConfig{
-						Type: graphql.NewNonNull(graphql.String),
+					"limit": &graphql.ArgumentConfig{
+						Type:         graphql.Int,
+						DefaultValue: 10,
+						Description:  "Number of items per page (default: 10, max: 100)",
 					},
-					"name": &graphql.ArgumentConfig{
-						Type: graphql.NewNonNull(graphql.String),
+					"offset": &graphql.ArgumentConfig{
+						Type:         graphql.Int,
+						DefaultValue: 0,
+						Description:  "Number of items to skip",
 					},
 				},
-				Resolve: s.resolveRepository,
+				Resolve: s.resolveListRepositories,
 			},
 			"searchRepositories": &graphql.Field{
-				Type: graphql.NewList(giteaRepoType),
+				Type: paginatedReposType,
 				Args: graphql.FieldConfigArgument{
 					"query": &graphql.ArgumentConfig{
-						Type: graphql.String,
+						Type:        graphql.String,
+						Description: "Search query string",
 					},
 					"limit": &graphql.ArgumentConfig{
-						Type: graphql.Int,
+						Type:         graphql.Int,
+						DefaultValue: 10,
+						Description:  "Number of items per page (default: 10, max: 100)",
+					},
+					"offset": &graphql.ArgumentConfig{
+						Type:         graphql.Int,
+						DefaultValue: 0,
+						Description:  "Number of items to skip",
 					},
 				},
 				Resolve: s.resolveSearchRepositories,
+			},
+			"getRepository": &graphql.Field{
+				Type: giteaRepoType,
+				Args: graphql.FieldConfigArgument{
+					"owner": &graphql.ArgumentConfig{
+						Type:        graphql.NewNonNull(graphql.String),
+						Description: "Repository owner username",
+					},
+					"name": &graphql.ArgumentConfig{
+						Type:        graphql.NewNonNull(graphql.String),
+						Description: "Repository name",
+					},
+				},
+				Resolve: s.resolveGetRepository,
+			},
+			"myRepositories": &graphql.Field{
+				Type: paginatedReposType,
+				Args: graphql.FieldConfigArgument{
+					"limit": &graphql.ArgumentConfig{
+						Type:         graphql.Int,
+						DefaultValue: 10,
+						Description:  "Number of items per page",
+					},
+					"offset": &graphql.ArgumentConfig{
+						Type:         graphql.Int,
+						DefaultValue: 0,
+						Description:  "Number of items to skip",
+					},
+				},
+				Resolve: s.resolveMyRepositories,
 			},
 			"repositoryStats": &graphql.Field{
 				Type:    repoStatsType,
@@ -90,9 +129,57 @@ func NewSchema(giteaService *gitea.Service, ldapClient *ldap.Client, giteaClient
 		},
 	})
 
+	// Define root mutation
+	mutationType := graphql.NewObject(graphql.ObjectConfig{
+		Name: "Mutation",
+		Fields: graphql.Fields{
+			"deleteRepository": &graphql.Field{
+				Type: graphql.Boolean,
+				Args: graphql.FieldConfigArgument{
+					"owner": &graphql.ArgumentConfig{
+						Type:        graphql.NewNonNull(graphql.String),
+						Description: "Repository owner username",
+					},
+					"name": &graphql.ArgumentConfig{
+						Type:        graphql.NewNonNull(graphql.String),
+						Description: "Repository name",
+					},
+				},
+				Resolve: s.resolveDeleteRepository,
+			},
+			"updateRepository": &graphql.Field{
+				Type: giteaRepoType,
+				Args: graphql.FieldConfigArgument{
+					"owner": &graphql.ArgumentConfig{
+						Type:        graphql.NewNonNull(graphql.String),
+						Description: "Repository owner username",
+					},
+					"name": &graphql.ArgumentConfig{
+						Type:        graphql.NewNonNull(graphql.String),
+						Description: "Repository name",
+					},
+					"description": &graphql.ArgumentConfig{
+						Type:        graphql.String,
+						Description: "Repository description",
+					},
+					"private": &graphql.ArgumentConfig{
+						Type:        graphql.Boolean,
+						Description: "Make repository private",
+					},
+					"defaultBranch": &graphql.ArgumentConfig{
+						Type:        graphql.String,
+						Description: "Default branch name",
+					},
+				},
+				Resolve: s.resolveUpdateRepository,
+			},
+		},
+	})
+
 	// Create schema
 	schemaConfig := graphql.SchemaConfig{
-		Query: queryType,
+		Query:    queryType,
+		Mutation: mutationType,
 	}
 
 	schema, err := graphql.NewSchema(schemaConfig)
@@ -179,12 +266,148 @@ func (s *Schema) defineHealthType() *graphql.Object {
 	})
 }
 
+func (s *Schema) definePaginatedRepositoriesType(repoType *graphql.Object) *graphql.Object {
+	return graphql.NewObject(graphql.ObjectConfig{
+		Name: "PaginatedRepositories",
+		Fields: graphql.Fields{
+			"items": &graphql.Field{
+				Type:        graphql.NewList(repoType),
+				Description: "List of repositories",
+			},
+			"total": &graphql.Field{
+				Type:        graphql.Int,
+				Description: "Total number of repositories",
+			},
+			"limit": &graphql.Field{
+				Type:        graphql.Int,
+				Description: "Number of items per page",
+			},
+			"offset": &graphql.Field{
+				Type:        graphql.Int,
+				Description: "Number of items skipped",
+			},
+			"hasMore": &graphql.Field{
+				Type:        graphql.Boolean,
+				Description: "Whether there are more items",
+			},
+		},
+	})
+}
+
 // Query Resolvers
+
+func (s *Schema) resolveListRepositories(p graphql.ResolveParams) (interface{}, error) {
+	limit := p.Args["limit"].(int)
+	offset := p.Args["offset"].(int)
+
+	if limit > 100 {
+		limit = 100
+	}
+	if limit <= 0 {
+		limit = 10
+	}
+
+	allRepos, err := s.giteaClient.ListRepositories()
+	if err != nil {
+		s.logger.WithError(err).Error("Failed to list repositories")
+		return nil, fmt.Errorf("failed to list repositories: %w", err)
+	}
+
+	total := len(allRepos)
+	start := offset
+	end := offset + limit
+
+	if start > total {
+		start = total
+	}
+	if end > total {
+		end = total
+	}
+
+	paginatedRepos := allRepos[start:end]
+
+	return map[string]interface{}{
+		"items":   s.convertGiteaReposToMap(paginatedRepos),
+		"total":   total,
+		"limit":   limit,
+		"offset":  offset,
+		"hasMore": end < total,
+	}, nil
+}
+
+func (s *Schema) resolveSearchRepositories(p graphql.ResolveParams) (interface{}, error) {
+	query := ""
+	if q, ok := p.Args["query"].(string); ok {
+		query = q
+	}
+
+	limit := p.Args["limit"].(int)
+	offset := p.Args["offset"].(int)
+
+	if limit > 100 {
+		limit = 100
+	}
+	if limit <= 0 {
+		limit = 10
+	}
+
+	// Fetch more to handle offset client-side
+	fetchLimit := limit + offset + 50
+	allRepos, err := s.giteaClient.SearchRepositories(query, fetchLimit)
+	if err != nil {
+		s.logger.WithError(err).Error("Failed to search repositories")
+		return nil, fmt.Errorf("failed to search repositories: %w", err)
+	}
+
+	total := len(allRepos)
+	start := offset
+	end := offset + limit
+
+	if start > total {
+		start = total
+	}
+	if end > total {
+		end = total
+	}
+
+	paginatedRepos := allRepos[start:end]
+
+	return map[string]interface{}{
+		"items":   s.convertGiteaReposToMap(paginatedRepos),
+		"total":   total,
+		"limit":   limit,
+		"offset":  offset,
+		"hasMore": end < total,
+	}, nil
+}
+
+func (s *Schema) resolveGetRepository(p graphql.ResolveParams) (interface{}, error) {
+	owner := p.Args["owner"].(string)
+	name := p.Args["name"].(string)
+
+	repo, err := s.giteaClient.GetRepository(owner, name)
+	if err != nil {
+		s.logger.WithError(err).Error("Failed to get repository")
+		return nil, fmt.Errorf("failed to get repository: %w", err)
+	}
+
+	return s.convertGiteaRepoToMap(repo), nil
+}
 
 func (s *Schema) resolveMyRepositories(p graphql.ResolveParams) (interface{}, error) {
 	user, token, err := s.getUserFromContext(p.Context)
 	if err != nil {
 		return nil, err
+	}
+
+	limit := p.Args["limit"].(int)
+	offset := p.Args["offset"].(int)
+
+	if limit > 100 {
+		limit = 100
+	}
+	if limit <= 0 {
+		limit = 10
 	}
 
 	repos, err := s.giteaService.GetUserRepositories(p.Context, user, token)
@@ -193,50 +416,74 @@ func (s *Schema) resolveMyRepositories(p graphql.ResolveParams) (interface{}, er
 		return nil, fmt.Errorf("failed to get repositories: %w", err)
 	}
 
-	return s.convertReposToModels(repos), nil
-}
+	convertedRepos := s.convertReposToModels(repos)
+	total := len(convertedRepos)
+	start := offset
+	end := offset + limit
 
-func (s *Schema) resolveRepository(p graphql.ResolveParams) (interface{}, error) {
-	user, token, err := s.getUserFromContext(p.Context)
-	if err != nil {
-		return nil, err
+	if start > total {
+		start = total
+	}
+	if end > total {
+		end = total
 	}
 
+	paginatedRepos := convertedRepos[start:end]
+
+	return map[string]interface{}{
+		"items":   paginatedRepos,
+		"total":   total,
+		"limit":   limit,
+		"offset":  offset,
+		"hasMore": end < total,
+	}, nil
+}
+
+func (s *Schema) resolveDeleteRepository(p graphql.ResolveParams) (interface{}, error) {
 	owner := p.Args["owner"].(string)
 	name := p.Args["name"].(string)
 
-	repo, err := s.giteaService.GetRepository(p.Context, user, owner, name, token)
+	err := s.giteaClient.DeleteRepository(owner, name)
 	if err != nil {
-		s.logger.WithError(err).Error("Failed to get repository")
-		return nil, fmt.Errorf("failed to get repository: %w", err)
+		s.logger.WithError(err).Error("Failed to delete repository")
+		return false, fmt.Errorf("failed to delete repository: %w", err)
 	}
 
-	return s.convertRepoToModel(repo), nil
+	s.logger.WithFields(logrus.Fields{
+		"owner": owner,
+		"name":  name,
+	}).Info("Repository deleted successfully")
+
+	return true, nil
 }
 
-func (s *Schema) resolveSearchRepositories(p graphql.ResolveParams) (interface{}, error) {
-	user, token, err := s.getUserFromContext(p.Context)
+func (s *Schema) resolveUpdateRepository(p graphql.ResolveParams) (interface{}, error) {
+	owner := p.Args["owner"].(string)
+	name := p.Args["name"].(string)
+
+	updates := make(map[string]interface{})
+	if desc, ok := p.Args["description"].(string); ok {
+		updates["description"] = desc
+	}
+	if private, ok := p.Args["private"].(bool); ok {
+		updates["private"] = private
+	}
+	if branch, ok := p.Args["defaultBranch"].(string); ok {
+		updates["default_branch"] = branch
+	}
+
+	repo, err := s.giteaClient.UpdateRepository(owner, name, updates)
 	if err != nil {
-		return nil, err
+		s.logger.WithError(err).Error("Failed to update repository")
+		return nil, fmt.Errorf("failed to update repository: %w", err)
 	}
 
-	query := ""
-	if q, ok := p.Args["query"].(string); ok {
-		query = q
-	}
+	s.logger.WithFields(logrus.Fields{
+		"owner": owner,
+		"name":  name,
+	}).Info("Repository updated successfully")
 
-	limit := 50
-	if l, ok := p.Args["limit"].(int); ok {
-		limit = l
-	}
-
-	repos, err := s.giteaService.SearchUserRepositories(p.Context, user, query, limit, token)
-	if err != nil {
-		s.logger.WithError(err).Error("Failed to search repositories")
-		return nil, fmt.Errorf("failed to search repositories: %w", err)
-	}
-
-	return s.convertReposToModels(repos), nil
+	return s.convertGiteaRepoToMap(repo), nil
 }
 
 func (s *Schema) resolveRepositoryStats(p graphql.ResolveParams) (interface{}, error) {
@@ -390,5 +637,42 @@ func (s *Schema) convertStatsToModel(stats *gitea.RepositoryStats) *models.Repos
 		PrivateCount: stats.PrivateCount,
 		PublicCount:  stats.PublicCount,
 		Languages:    languages,
+	}
+}
+
+// Helper function to convert Gitea repos to map format
+func (s *Schema) convertGiteaReposToMap(repos []*gitea.Repository) []map[string]interface{} {
+	result := make([]map[string]interface{}, len(repos))
+	for i, repo := range repos {
+		result[i] = s.convertGiteaRepoToMap(repo)
+	}
+	return result
+}
+
+func (s *Schema) convertGiteaRepoToMap(repo *gitea.Repository) map[string]interface{} {
+	return map[string]interface{}{
+		"id":            repo.ID,
+		"name":          repo.Name,
+		"fullName":      repo.FullName,
+		"description":   repo.Description,
+		"private":       repo.Private,
+		"fork":          repo.Fork,
+		"htmlUrl":       repo.HTMLURL,
+		"sshUrl":        repo.SSHURL,
+		"cloneUrl":      repo.CloneURL,
+		"defaultBranch": repo.DefaultBranch,
+		"language":      repo.Language,
+		"stars":         repo.Stars,
+		"forks":         repo.Forks,
+		"size":          repo.Size,
+		"createdAt":     repo.CreatedAt.Format(time.RFC3339),
+		"updatedAt":     repo.UpdatedAt.Format(time.RFC3339),
+		"owner": map[string]interface{}{
+			"id":        repo.Owner.ID,
+			"login":     repo.Owner.Login,
+			"fullName":  repo.Owner.FullName,
+			"email":     repo.Owner.Email,
+			"avatarUrl": repo.Owner.AvatarURL,
+		},
 	}
 }

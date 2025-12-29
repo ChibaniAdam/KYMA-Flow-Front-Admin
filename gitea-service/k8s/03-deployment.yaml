@@ -42,10 +42,57 @@ spec:
         - name: metrics
           containerPort: 9091
           protocol: TCP
-        envFrom:
-        - configMapRef:
-            name: gitea-service-config
         env:
+        - name: GITEA_URL
+          valueFrom:
+            configMapKeyRef:
+              name: gitea-service-config
+              key: GITEA_URL
+        - name: LDAP_MANAGER_URL
+          valueFrom:
+            configMapKeyRef:
+              name: gitea-service-config
+              key: LDAP_MANAGER_URL
+        - name: PORT
+          valueFrom:
+            configMapKeyRef:
+              name: gitea-service-config
+              key: PORT
+        - name: METRICS_PORT
+          valueFrom:
+            configMapKeyRef:
+              name: gitea-service-config
+              key: METRICS_PORT
+        - name: ENVIRONMENT
+          valueFrom:
+            configMapKeyRef:
+              name: gitea-service-config
+              key: ENVIRONMENT
+        - name: LOG_LEVEL
+          valueFrom:
+            configMapKeyRef:
+              name: gitea-service-config
+              key: LOG_LEVEL
+        - name: HTTP_CLIENT_TIMEOUT
+          valueFrom:
+            configMapKeyRef:
+              name: gitea-service-config
+              key: HTTP_CLIENT_TIMEOUT
+        - name: JWT_EXPIRATION
+          valueFrom:
+            configMapKeyRef:
+              name: gitea-service-config
+              key: JWT_EXPIRATION
+        - name: CORS_ORIGINS
+          valueFrom:
+            configMapKeyRef:
+              name: gitea-service-config
+              key: CORS_ORIGINS
+        - name: SHUTDOWN_TIMEOUT
+          valueFrom:
+            configMapKeyRef:
+              name: gitea-service-config
+              key: SHUTDOWN_TIMEOUT
         - name: GITEA_TOKEN
           valueFrom:
             secretKeyRef:

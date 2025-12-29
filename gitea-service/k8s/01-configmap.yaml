@@ -4,11 +4,11 @@ metadata:
   name: gitea-service-config
   namespace: dev-platform
 data:
-  # Gitea configuration
+  # Gitea configuration (ClusterIP service for internal communication)
   GITEA_URL: "http://gitea.dev-platform.svc.cluster.local:3000"
 
   # LDAP Manager service URL (inter-service communication)
-  LDAP_MANAGER_URL: "http://ldap-manager.dev-platform.svc.cluster.local:8080"
+  LDAP_MANAGER_URL: "http://ldap-manager.dev-platform.svc.cluster.local:30008"
 
   # Server configuration
   PORT: "8081"

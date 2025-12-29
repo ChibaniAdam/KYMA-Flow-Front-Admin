@@ -6,14 +6,14 @@ metadata:
   labels:
     app: gitea-service
 spec:
-  type: ClusterIP
+  type: LoadBalancer
   ports:
   - name: http
-    port: 80
+    port: 30011
     targetPort: 8081
     protocol: TCP
   - name: metrics
-    port: 9091
+    port: 30013
     targetPort: 9091
     protocol: TCP
   selector:

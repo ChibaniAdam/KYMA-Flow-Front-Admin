@@ -91,4 +91,49 @@ type HealthStatus struct {
 	Status    string `json:"status"`
 	Timestamp int64  `json:"timestamp"`
 	LDAP      bool   `json:"ldap"`
+	Gitea     bool   `json:"gitea,omitempty"`
+}
+
+// GiteaRepository represents a Gitea repository
+type GiteaRepository struct {
+	ID            int64            `json:"id"`
+	Name          string           `json:"name"`
+	FullName      string           `json:"fullName"`
+	Description   string           `json:"description"`
+	Private       bool             `json:"private"`
+	Fork          bool             `json:"fork"`
+	HTMLURL       string           `json:"htmlUrl"`
+	SSHURL        string           `json:"sshUrl"`
+	CloneURL      string           `json:"cloneUrl"`
+	DefaultBranch string           `json:"defaultBranch"`
+	Language      string           `json:"language"`
+	Stars         int              `json:"stars"`
+	Forks         int              `json:"forks"`
+	Size          int              `json:"size"`
+	CreatedAt     string           `json:"createdAt"`
+	UpdatedAt     string           `json:"updatedAt"`
+	Owner         RepositoryOwner  `json:"owner"`
+}
+
+// RepositoryOwner represents the owner of a repository
+type RepositoryOwner struct {
+	ID        int64  `json:"id"`
+	Login     string `json:"login"`
+	FullName  string `json:"fullName"`
+	Email     string `json:"email"`
+	AvatarURL string `json:"avatarUrl"`
+}
+
+// RepositoryStats contains statistics about repositories
+type RepositoryStats struct {
+	TotalCount   int                    `json:"totalCount"`
+	PrivateCount int                    `json:"privateCount"`
+	PublicCount  int                    `json:"publicCount"`
+	Languages    []LanguageDistribution `json:"languages"`
+}
+
+// LanguageDistribution represents language distribution in repositories
+type LanguageDistribution struct {
+	Language string `json:"language"`
+	Count    int    `json:"count"`
 }

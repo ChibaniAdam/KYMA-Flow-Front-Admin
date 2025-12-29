@@ -6,7 +6,7 @@ metadata:
   name: ldap-manager-config
   namespace: dev-platform
 data:
-  LDAP_URL: "ldap://openldap.dev-platform.svc.cluster.local:389"
+  LDAP_URL: "ldap://openldap1.dev-platform.svc.cluster.local:389"
   LDAP_BASE_DN: "dc=devplatform,dc=local"
   LDAP_BIND_DN: "cn=admin,dc=devplatform,dc=local"
   PORT: "8080"
@@ -196,35 +196,19 @@ metadata:
   labels:
     app: ldap-manager
 spec:
-  type: ClusterIP
+  type: LoadBalancer
   ports:
-  - port: 80
+  - port: 30008
     targetPort: 8080
     protocol: TCP
     name: http
-  - port: 9090
+  - port: 30007
     targetPort: 9090
     protocol: TCP
     name: metrics
   selector:
     app: ldap-manager
 
----
-# IngressRoute for Traefik (if using Traefik)
-apiVersion: traefik.containo.us/v1alpha1
-kind: IngressRoute
-metadata:
-  name: ldap-manager
-  namespace: dev-platform
-spec:
-  entryPoints:
-    - web
-  routes:
-  - match: Host(`ldap-manager.localhost`)
-    kind: Rule
-    services:
-    - name: ldap-manager
-      port: 80
 
 ---
 # HorizontalPodAutoscaler

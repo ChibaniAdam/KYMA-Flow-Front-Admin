@@ -54,19 +54,19 @@ func main() {
 
 	// Create a test user
 	userDN := "uid=john.doe,ou=users,dc=devplatform,dc=local"
-	addReq := ldap.NewAddRequest(userDN, nil)
-	addReq.Attribute("objectClass", []string{"inetOrgPerson", "posixAccount", "shadowAccount"})
-	addReq.Attribute("uid", []string{"john.doe"})
-	addReq.Attribute("cn", []string{"John Doe"})
-	addReq.Attribute("sn", []string{"Doe"})
-	addReq.Attribute("givenName", []string{"John"})
-	addReq.Attribute("mail", []string{"john.doe@devplatform.local"})
-	addReq.Attribute("uidNumber", []string{"10001"})
-	addReq.Attribute("gidNumber", []string{"10001"})
-	addReq.Attribute("homeDirectory", []string{"/home/john.doe"})
-	addReq.Attribute("userPassword", []string{"password123"})
+	addUserReq := ldap.NewAddRequest(userDN, nil)
+	addUserReq.Attribute("objectClass", []string{"inetOrgPerson", "posixAccount", "shadowAccount"})
+	addUserReq.Attribute("uid", []string{"john.doe"})
+	addUserReq.Attribute("cn", []string{"John Doe"})
+	addUserReq.Attribute("sn", []string{"Doe"})
+	addUserReq.Attribute("givenName", []string{"John"})
+	addUserReq.Attribute("mail", []string{"john.doe@devplatform.local"})
+	addUserReq.Attribute("uidNumber", []string{"10001"})
+	addUserReq.Attribute("gidNumber", []string{"10001"})
+	addUserReq.Attribute("homeDirectory", []string{"/home/john.doe"})
+	addUserReq.Attribute("userPassword", []string{"password123"})
 
-	err = conn.Add(addReq)
+	err = conn.Add(addUserReq)
 	if err != nil {
 		if ldap.IsErrorWithCode(err, ldap.LDAPResultEntryAlreadyExists) {
 			fmt.Println("⚠ User john.doe already exists")
@@ -75,6 +75,28 @@ func main() {
 		}
 	} else {
 		fmt.Println("✓ Created user: john.doe")
+	}
+
+	// Create a test department
+	deptDN := "ou=TestDept,ou=departments,dc=devplatform,dc=local"
+	addDeptReq := ldap.NewAddRequest(deptDN, nil)
+	addDeptReq.Attribute("objectClass", []string{"organizationalUnit"})
+	addDeptReq.Attribute("ou", []string{"TestDept"})
+	addDeptReq.Attribute("description", []string{"This is a test department"})
+	// Optional fields from schema (manager, members, repositories) can be stored as extra attributes if LDAP schema allows
+	// addDeptReq.Attribute("manager", []string{"john.doe"})
+	// addDeptReq.Attribute("members", []string{"john.doe"})
+	// addDeptReq.Attribute("repositories", []string{"repo1", "repo2"})
+
+	err = conn.Add(addDeptReq)
+	if err != nil {
+		if ldap.IsErrorWithCode(err, ldap.LDAPResultEntryAlreadyExists) {
+			fmt.Println("⚠ Department TestDept already exists")
+		} else {
+			log.Fatalf("Failed to create department: %v", err)
+		}
+	} else {
+		fmt.Println("✓ Created department: TestDept")
 	}
 
 	fmt.Println("\n✅ LDAP Initialization Complete!")
