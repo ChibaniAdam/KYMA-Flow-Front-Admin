@@ -9,6 +9,11 @@ export function Header() {
   const location = useLocation();
   const [menuOpen, setMenuOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
+  const managementRef = useRef<HTMLButtonElement>(null);
+  const [mgmtOpen, setMgmtOpen] = useState(false);
+  const [mgmtPos, setMgmtPos] = useState({ left: 0, top: 0 });
+  const isManagementActive = location.pathname.startsWith("/management");
+
   const [isScrolled, setIsScrolled] = useState(false);
 
   const [showRightArrow, setShowRightArrow] = useState(false);
@@ -29,33 +34,53 @@ export function Header() {
     return () => window.removeEventListener("scroll", handlePageScroll);
   }, []);
 
-  useEffect(() => {
-    if (!navRef.current) return;
+useEffect(() => {
+  if (!navRef.current) return;
 
-    const el = navRef.current;
+  const links = Array.from(
+    navRef.current.querySelectorAll<HTMLElement>(
+      "a, button.nav-parent"
+    )
+  );
 
-    const checkScroll = () => {
-      const isOverflowing = el.scrollWidth > el.clientWidth;
-      
-      if (!isOverflowing) {
-        setShowRightArrow(false);
-        setShowLeftArrow(false);
-        return;
-      }
+  let activeEl: HTMLElement | undefined;
 
-      setShowLeftArrow(el.scrollLeft > 10);
-      setShowRightArrow(el.scrollLeft < el.scrollWidth - el.clientWidth - 10);
-    };
+  // Management children routes
+  if (location.pathname.startsWith("/management")) {
+    activeEl = links.find(
+      (el) => el.dataset.parent === "management"
+    );
+  } else {
+    activeEl = links.find((el) =>
+      el.classList.contains("active")
+    );
+  }
 
-    checkScroll();
-    el.addEventListener("scroll", checkScroll);
-    window.addEventListener("resize", checkScroll);
+  if (!activeEl) return;
 
-    return () => {
-      el.removeEventListener("scroll", checkScroll);
-      window.removeEventListener("resize", checkScroll);
-    };
-  }, []);
+  setUnderline({
+    left: activeEl.offsetLeft,
+    width: activeEl.offsetWidth,
+    transition: "all 0.25s cubic-bezier(.4,0,.2,1)"
+  });
+}, [location.pathname, isScrolled]);
+const openManagement = () => {
+  if (!managementRef.current) return;
+
+  const rect = managementRef.current.getBoundingClientRect();
+
+  setMgmtPos({
+    left: rect.left,
+    top: rect.bottom - 2
+  });
+
+  setMgmtOpen(true);
+};
+
+const closeManagement = () => {
+  setMgmtOpen(false);
+};
+
 
   const scrollToEnd = () => {
     if (!navRef.current) return;
@@ -74,21 +99,26 @@ export function Header() {
   };
 
   /* Underline animation logic */
-  useEffect(() => {
-    if (!navRef.current) return;
+useEffect(() => {
+  if (!navRef.current) return;
 
-    const activeLink =
-      navRef.current.querySelector<HTMLAnchorElement>("a.active");
-    if (!activeLink) return;
+  const links = Array.from(
+    navRef.current.querySelectorAll<HTMLAnchorElement>("a")
+  );
 
-    const { offsetLeft, offsetWidth } = activeLink;
+  const active = links.find((link) =>
+    location.pathname.startsWith(link.getAttribute("href") || "")
+  );
 
-    setUnderline(() => ({
-      left: offsetLeft,
-      width: offsetWidth,
-      transition: "all 0.3s ease"
-    }));
-  }, [location, isScrolled]);
+  if (!active) return;
+
+  setUnderline({
+    left: active.offsetLeft,
+    width: active.offsetWidth,
+    transition: "all 0.3s ease"
+  });
+}, [location.pathname, isScrolled]);
+
 
   return (
     <header className={`topbar-container ${isScrolled ? "minified" : ""}`}>
@@ -100,37 +130,53 @@ export function Header() {
             <span className="project-name">KYMA Flow</span>
           </div>
         </div>
-
         <div className="topbar-right" ref={menuRef}>
           <button
             type="button"
             className="topbar-avatar"
             aria-label="Open user menu"
             aria-expanded={menuOpen}
-            aria-controls="avatar-menu"
-            onClick={() => setMenuOpen(!menuOpen)}
+            onClick={() => setMenuOpen((v) => !v)}
           />
+
           {menuOpen && (
-            <div id="avatar-menu" className="avatar-menu">
+            <div className="avatar-menu">
               <button className="menu-item">Account Settings</button>
-              <button className="menu-item" onClick={() => logout(navigate)}>Logout</button>
+              <button
+                className="menu-item"
+                onClick={() => logout(navigate)}
+              >
+                Logout
+              </button>
             </div>
           )}
         </div>
-      </div>
 
-      <div className="topbar-menu-wrapper">
+              </div>
 
-        {showLeftArrow && (
-          <button className="scroll-arrow left" onClick={scrollToStart}>
-            ◀
-          </button>
-        )}
+              <div className="topbar-menu-wrapper">
 
-        <nav className="topbar-menu" ref={navRef}>
-          <NavLink to="/projects">Projects</NavLink>
-          <NavLink to="/dashboard">Dashboard</NavLink>
-          <NavLink to="/users-dashboard">Users Dashboard</NavLink>
+                {showLeftArrow && (
+                  <button className="scroll-arrow left" onClick={scrollToStart}>
+                    ◀
+                  </button>
+                )}
+
+                <nav className="topbar-menu" ref={navRef}>
+                  <NavLink to="/projects">Projects</NavLink>
+                  <NavLink to="/dashboard">Dashboard</NavLink>
+        <button
+          ref={managementRef}
+          className={`nav-parent ${isManagementActive ? "active" : ""}`}
+          data-parent="management"
+          onMouseEnter={openManagement}
+          onMouseLeave={closeManagement}
+        >
+          Management
+        </button>
+
+
+
           <NavLink to="/deployments">Deployments</NavLink>
           <NavLink to="/activity">Activity</NavLink>
           <NavLink to="/domains">Domains</NavLink>
@@ -147,6 +193,21 @@ export function Header() {
             }}
           />
         </nav>
+{mgmtOpen && (
+  <div
+    className="management-dropdown"
+    style={{
+      left: mgmtPos.left,
+      top: mgmtPos.top
+    }}
+    onMouseEnter={() => setMgmtOpen(true)}
+    onMouseLeave={closeManagement}
+  >
+    <NavLink to="/management/users">Users</NavLink>
+    <NavLink to="/management/departments">Departments</NavLink>
+    <NavLink to="/management/groups">Groups</NavLink>
+  </div>
+)}
 
         {showRightArrow && (
           <button className="scroll-arrow right" onClick={scrollToEnd}>

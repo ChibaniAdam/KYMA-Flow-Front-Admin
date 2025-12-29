@@ -8,7 +8,7 @@ interface Column<T> {
   render?: (row: T) => React.ReactNode;
 }
 
-interface DataTableProps<T extends { uid: string }> {
+interface DataTableProps<T extends { dn: string }> {
   columns: Column<T>[];
   data: T[];
   loading?: boolean;
@@ -27,7 +27,7 @@ interface DataTableProps<T extends { uid: string }> {
   onSelectionChange?: (ids: string[]) => void;
 }
 
-export function DataTable<T extends { uid: string }>({
+export function DataTable<T extends { dn: string }>({
   columns,
   data,
   loading,
@@ -46,32 +46,47 @@ export function DataTable<T extends { uid: string }>({
   const [sortKey, setSortKey] = useState<keyof T | null>(null);
   const [sortDir, setSortDir] = useState<"asc" | "desc">("asc");
 
-  const sortedData = useMemo(() => {
-    if (!sortKey) return data;
+const sortedData = useMemo(() => {
+  if (!sortKey) return data;
 
-    return [...data].sort((a, b) => {
-      const va = a[sortKey];
-      const vb = b[sortKey];
+  return [...data].sort((a, b) => {
+    const va = a[sortKey];
+    const vb = b[sortKey];
 
-      if (va == null || vb == null) return 0;
-      if (va < vb) return sortDir === "asc" ? -1 : 1;
-      if (va > vb) return sortDir === "asc" ? 1 : -1;
-      return 0;
-    });
-  }, [data, sortKey, sortDir]);
+    if (va == null && vb == null) return 0;
+    if (va == null) return 1;
+    if (vb == null) return -1;
 
-  const handleSort = (key: keyof T) => {
-    if (sortKey === key) {
-      setSortDir((d) => (d === "asc" ? "desc" : "asc"));
-    } else {
-      setSortKey(key);
-      setSortDir("asc");
+    // string comparison
+    if (typeof va === "string" && typeof vb === "string") {
+      return sortDir === "asc"
+        ? va.localeCompare(vb)
+        : vb.localeCompare(va);
     }
-  };
+
+    // number / boolean comparison
+    return sortDir === "asc"
+      ? va > vb ? 1 : -1
+      : va < vb ? 1 : -1;
+  });
+}, [data, sortKey, sortDir]);
+
+const handleSort = (key: keyof T) => {
+  if (sortKey === key) {
+    setSortDir((d) => (d === "asc" ? "desc" : "asc"));
+  } else {
+    setSortKey(key);
+    setSortDir("asc");
+  }
+};
 
   /* ───────────── Pagination ───────────── */
-  const totalPages = Math.ceil(total / pageSize);
-  const paginatedData = data;
+const totalPages = Math.ceil(total / pageSize);
+
+const paginatedData = useMemo(() => {
+  const start = (page - 1) * pageSize;
+  return sortedData.slice(start, start + pageSize);
+}, [sortedData, page, pageSize]);
 
 
 
@@ -92,7 +107,7 @@ export function DataTable<T extends { uid: string }>({
     if (selectedRows.length === paginatedData.length) {
       onSelectionChange([]);
     } else {
-      onSelectionChange(paginatedData.map((r) => r.uid));
+      onSelectionChange(paginatedData.map((r) => r.dn));
     }
   };
 
@@ -134,7 +149,7 @@ export function DataTable<T extends { uid: string }>({
                 {c.header}
                 {sortKey === c.key && (
                   <span className="sort-indicator">
-                    {sortDir === "asc" ? "▲" : "▼"}
+                    {sortDir === "asc" ? "▼" : "▲"}
                   </span>
                 )}
               </th>
@@ -146,13 +161,13 @@ export function DataTable<T extends { uid: string }>({
 
         <tbody>
           {paginatedData.map((row) => (
-            <tr key={row.uid}>
+            <tr key={row.dn}>
               {selectable && (
                 <td>
                   <input
                     type="checkbox"
-                    checked={selectedRows.includes(row.uid)}
-                    onChange={() => toggleRow(row.uid)}
+                    checked={selectedRows.includes(row.dn)}
+                    onChange={() => toggleRow(row.dn)}
                   />
                 </td>
               )}

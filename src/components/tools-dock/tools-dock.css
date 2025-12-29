@@ -110,6 +110,7 @@
   min-width: var(--item);
   display: grid;
   place-content: center;
+  color:white;
 }
 
 /* ---------- TEXT ---------- */

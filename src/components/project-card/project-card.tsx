@@ -11,6 +11,8 @@ interface ProjectCardProps {
   readonly dateRange?: string;
   readonly branch?: string;
   readonly status?: string;
+  readonly stars?: number;
+  readonly forks?: number;
 }
 
 export function ProjectCard({
@@ -21,35 +23,36 @@ export function ProjectCard({
   dateRange,
   branch = "master",
   status = "◉",
+  stars,
+  forks,
 }: ProjectCardProps) {
   return (
     <div className="project-card">
       <div className="project-left">
         <div className="project-icon">{icon}</div>
+
         <div className="project-meta">
           <h3 className="project-title">{title}</h3>
 
           {repoName && (
             <Tooltip text={repoName} color="var(--light-blue-600)" position="top">
-    <a
-  href={repoLink}
-  target="_blank"
-  className="project-subtext flex min-w-0 flex-row items-center gap-0.5 rounded-full p-0.5 pr-1.5 max-w-48"
->
-<img src={GithubIcon} alt="Github Icon"/>
-
-  <span className="min-w-0 overflow-hidden text-ellipsis whitespace-nowrap">
-    {repoName}
-  </span>
-</a>
-
+              <a
+                href={repoLink}
+                target="_blank"
+                className="project-subtext flex min-w-0 flex-row items-center gap-0.5 rounded-full p-0.5 pr-1.5 max-w-48"
+              >
+                <img src={GithubIcon} alt="Github Icon" />
+                <span className="min-w-0 overflow-hidden text-ellipsis whitespace-nowrap">
+                  {repoName}
+                </span>
+              </a>
             </Tooltip>
           )}
 
           {dateRange && (
             <span className="project-date">
-              {dateRange} — 
-              <img src={BranchIcon} alt="branch icon"/>
+              {dateRange} —
+              <img src={BranchIcon} alt="branch icon" />
               &nbsp;
               {branch}
             </span>
@@ -58,6 +61,13 @@ export function ProjectCard({
       </div>
 
       <div className="project-right">
+        {(stars !== undefined || forks !== undefined) && (
+          <div className="project-stats">
+            {stars !== undefined && <span>⭐ {stars}</span>}
+            {forks !== undefined && <span>🍴 {forks}</span>}
+          </div>
+        )}
+
         <div className="project-status">{status}</div>
         <div className="project-menu">⋮</div>
       </div>

@@ -15,6 +15,8 @@ import "./users-dashboard.css";
 import { ConfirmationModal } from "../../components/confirmation-modal/confirmation-modal";
 import { FilterBar } from "../../components/filter-bar/filter-bar";
 import { DataTable } from "../../components/data-table/data-table";
+import { useDebounce } from "../../utils/useDebounce";
+import { useDelayedLoading } from "../../utils/useDelayedLoading";
 
 export const UsersDashboard = () => {
   const [usersPage, setUsersPage] = useState<UserPage | null>(null);
@@ -23,6 +25,7 @@ export const UsersDashboard = () => {
   const [departments, setDepartments] = useState<Department[]>([]);
 
   const [loading, setLoading] = useState(true);
+  const showSkeleton = useDelayedLoading(loading);
   const [showModal, setShowModal] = useState(false);
   const [editingUser, setEditingUser] = useState<User | null>(null);
 
@@ -31,6 +34,9 @@ export const UsersDashboard = () => {
 
   const [search, setSearch] = useState("");
   const [searchByMail, setSearchByMail] = useState("");
+  const debouncedSearch = useDebounce(search);
+  const debouncedSearchByMail = useDebounce(searchByMail);
+
 
   const [departmentFilter, setDepartmentFilter] = useState("");
 
@@ -45,23 +51,35 @@ export const UsersDashboard = () => {
     repositories: [],
   });
 
-  const fetchUsers = async () => {
-    try {
-      const filter: any = {};
-      if (departmentFilter) {filter.department = departmentFilter;}
-      if (search.trim()) filter.cn = search.trim().replace(" ",".");
-      if (searchByMail.trim()) filter.mail = searchByMail.trim();
+const fetchUsers = async () => {
+  try {
+    setLoading(true);
 
-      const data = await listUsers(filter, {
-        page,
-        limit: pageSize,
-      });
+    const filter: any = {};
 
-      setUsersPage(data);
-    } finally {
-      setLoading(false);
+    if (departmentFilter) {
+      filter.department = departmentFilter;
     }
-  };
+
+    if (debouncedSearch.trim()) {
+      filter.cn = debouncedSearch.trim().replace(" ", ".");
+    }
+
+    if (debouncedSearchByMail.trim()) {
+      filter.mail = debouncedSearchByMail.trim();
+    }
+
+    const data = await listUsers(filter, {
+      page,
+      limit: pageSize,
+    });
+
+    setUsersPage(data);
+  } finally {
+    setLoading(false);
+  }
+};
+
 
 
   const fetchDepartments = async () => {
@@ -75,8 +93,13 @@ export const UsersDashboard = () => {
   }, []);
 
   useEffect(() => {
-  fetchUsers();
-  }, [page, search, departmentFilter, searchByMail]);
+    setPage(1);
+  }, [debouncedSearch, debouncedSearchByMail, departmentFilter]);
+
+  useEffect(() => {
+    fetchUsers();
+  }, [page, debouncedSearch, debouncedSearchByMail, departmentFilter]);
+
 
 
 
@@ -134,9 +157,9 @@ export const UsersDashboard = () => {
   };
 
   return (
-    <div className="users-page">
+    <div className="dashboard-page">
 
-      <div className="users-page-title">
+      <div className="dashboard-page-title">
         <h1>Users</h1>
         <p>Manage all user accounts across departments.</p>
       </div>
@@ -179,7 +202,7 @@ export const UsersDashboard = () => {
  <div className="table-wrapper">
 <DataTable<User>
   data={usersPage?.items ?? []}
-  loading={loading}
+  loading={showSkeleton}
   page={page}
   pageSize={pageSize}
   total={usersPage?.total ?? 0}
