@@ -97,14 +97,32 @@ func (m *Manager) ListUsers(ctx context.Context, filter *models.SearchFilter) ([
 	filterStr := "(objectClass=inetOrgPerson)"
 	if filter != nil {
 		filters := []string{"(objectClass=inetOrgPerson)"}
-		if filter.Department != "" {
-			filters = append(filters, fmt.Sprintf("(departmentNumber=%s)", ldap.EscapeFilter(filter.Department)))
-		}
-		if filter.Mail != "" {
-			filters = append(filters, fmt.Sprintf("(mail=%s)", ldap.EscapeFilter(filter.Mail)))
+		if filter.UID != "" {
+			filters = append(filters, fmt.Sprintf("(uid=*%s*)", ldap.EscapeFilter(filter.UID)))
 		}
 		if filter.CN != "" {
 			filters = append(filters, fmt.Sprintf("(cn=*%s*)", ldap.EscapeFilter(filter.CN)))
+		}
+		if filter.SN != "" {
+			filters = append(filters, fmt.Sprintf("(sn=*%s*)", ldap.EscapeFilter(filter.SN)))
+		}
+		if filter.GivenName != "" {
+			filters = append(filters, fmt.Sprintf("(givenName=*%s*)", ldap.EscapeFilter(filter.GivenName)))
+		}
+		if filter.Mail != "" {
+			filters = append(filters, fmt.Sprintf("(mail=*%s*)", ldap.EscapeFilter(filter.Mail)))
+		}
+		if filter.Department != "" {
+			filters = append(filters, fmt.Sprintf("(departmentNumber=%s)", ldap.EscapeFilter(filter.Department)))
+		}
+		if filter.UIDNumber != 0 {
+			filters = append(filters, fmt.Sprintf("(uidNumber=%d)", filter.UIDNumber))
+		}
+		if filter.GIDNumber != 0 {
+			filters = append(filters, fmt.Sprintf("(gidNumber=%d)", filter.GIDNumber))
+		}
+		if filter.Repository != "" {
+			filters = append(filters, fmt.Sprintf("(githubRepository=*%s*)", ldap.EscapeFilter(filter.Repository)))
 		}
 		if len(filters) > 1 {
 			filterStr = fmt.Sprintf("(&%s)", strings.Join(filters, ""))
@@ -479,6 +497,39 @@ func (m *Manager) GetGroup(ctx context.Context, cn string) (*models.Group, error
 	}
 
 	return m.entryToGroup(result.Entries[0]), nil
+}
+
+// ListGroups lists all groups
+func (m *Manager) ListGroups(ctx context.Context) ([]*models.Group, error) {
+	conn, err := m.getConnection(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get connection: %w", err)
+	}
+	defer m.returnConnection(conn)
+
+	searchRequest := ldap.NewSearchRequest(
+		m.config.GroupsDN(),
+		ldap.ScopeSingleLevel,
+		ldap.NeverDerefAliases,
+		0,
+		0,
+		false,
+		"(objectClass=groupOfNames)",
+		[]string{"cn", "gidNumber", "member"},
+		nil,
+	)
+
+	result, err := conn.Search(searchRequest)
+	if err != nil {
+		return nil, fmt.Errorf("search failed: %w", err)
+	}
+
+	groups := make([]*models.Group, 0, len(result.Entries))
+	for _, entry := range result.Entries {
+		groups = append(groups, m.entryToGroup(entry))
+	}
+
+	return groups, nil
 }
 
 // AddUserToGroup adds a user to a group

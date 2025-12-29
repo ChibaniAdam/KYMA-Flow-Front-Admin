@@ -15,11 +15,10 @@ import (
 
 // Schema represents the GraphQL schema
 type Schema struct {
-	schema       graphql.Schema
-	ldapMgr      *ldap.Manager
-	giteaService interface{} // Will be set to *gitea.Service
-	config       *config.Config
-	logger       *logrus.Logger
+	schema  graphql.Schema
+	ldapMgr *ldap.Manager
+	config  *config.Config
+	logger  *logrus.Logger
 }
 
 // JWT Claims
@@ -45,8 +44,11 @@ func NewSchema(ldapMgr *ldap.Manager, cfg *config.Config, logger *logrus.Logger)
 	authPayloadType := s.defineAuthPayloadType(userType)
 	statsType := s.defineStatsType()
 	healthType := s.defineHealthType()
-	giteaRepoType := s.defineGiteaRepositoryType()
-	repoStatsType := s.defineRepositoryStatsType()
+
+	// Define paginated types
+	paginatedUsersType := s.definePaginatedUsersType(userType)
+	paginatedDepartmentsType := s.definePaginatedDepartmentsType(departmentType)
+	paginatedGroupsType := s.definePaginatedGroupsType(groupType)
 
 	// Define input types
 	createUserInputType := s.defineCreateUserInput()
@@ -72,10 +74,21 @@ func NewSchema(ldapMgr *ldap.Manager, cfg *config.Config, logger *logrus.Logger)
 				Resolve: s.resolveUser,
 			},
 			"users": &graphql.Field{
-				Type: graphql.NewList(userType),
+				Type: paginatedUsersType,
 				Args: graphql.FieldConfigArgument{
 					"filter": &graphql.ArgumentConfig{
-						Type: searchFilterInputType,
+						Type:        searchFilterInputType,
+						Description: "Search filter for users",
+					},
+					"limit": &graphql.ArgumentConfig{
+						Type:         graphql.Int,
+						DefaultValue: 10,
+						Description:  "Number of items per page (default: 10, max: 100)",
+					},
+					"offset": &graphql.ArgumentConfig{
+						Type:         graphql.Int,
+						DefaultValue: 0,
+						Description:  "Number of items to skip",
 					},
 				},
 				Resolve: s.resolveUsers,
@@ -90,14 +103,37 @@ func NewSchema(ldapMgr *ldap.Manager, cfg *config.Config, logger *logrus.Logger)
 				Resolve: s.resolveDepartment,
 			},
 			"departments": &graphql.Field{
-				Type:    graphql.NewList(departmentType),
+				Type: paginatedDepartmentsType,
+				Args: graphql.FieldConfigArgument{
+					"limit": &graphql.ArgumentConfig{
+						Type:         graphql.Int,
+						DefaultValue: 10,
+						Description:  "Number of items per page (default: 10, max: 100)",
+					},
+					"offset": &graphql.ArgumentConfig{
+						Type:         graphql.Int,
+						DefaultValue: 0,
+						Description:  "Number of items to skip",
+					},
+				},
 				Resolve: s.resolveDepartments,
 			},
 			"departmentUsers": &graphql.Field{
-				Type: graphql.NewList(userType),
+				Type: paginatedUsersType,
 				Args: graphql.FieldConfigArgument{
 					"department": &graphql.ArgumentConfig{
-						Type: graphql.NewNonNull(graphql.String),
+						Type:        graphql.NewNonNull(graphql.String),
+						Description: "Department name to filter by",
+					},
+					"limit": &graphql.ArgumentConfig{
+						Type:         graphql.Int,
+						DefaultValue: 10,
+						Description:  "Number of items per page (default: 10, max: 100)",
+					},
+					"offset": &graphql.ArgumentConfig{
+						Type:         graphql.Int,
+						DefaultValue: 0,
+						Description:  "Number of items to skip",
 					},
 				},
 				Resolve: s.resolveDepartmentUsers,
@@ -111,6 +147,22 @@ func NewSchema(ldapMgr *ldap.Manager, cfg *config.Config, logger *logrus.Logger)
 				},
 				Resolve: s.resolveGroup,
 			},
+			"groups": &graphql.Field{
+				Type: paginatedGroupsType,
+				Args: graphql.FieldConfigArgument{
+					"limit": &graphql.ArgumentConfig{
+						Type:         graphql.Int,
+						DefaultValue: 10,
+						Description:  "Number of items per page (default: 10, max: 100)",
+					},
+					"offset": &graphql.ArgumentConfig{
+						Type:         graphql.Int,
+						DefaultValue: 0,
+						Description:  "Number of items to skip",
+					},
+				},
+				Resolve: s.resolveGroups,
+			},
 			"health": &graphql.Field{
 				Type:    healthType,
 				Resolve: s.resolveHealth,
@@ -118,38 +170,6 @@ func NewSchema(ldapMgr *ldap.Manager, cfg *config.Config, logger *logrus.Logger)
 			"stats": &graphql.Field{
 				Type:    statsType,
 				Resolve: s.resolveStats,
-			},
-			"myGiteaRepositories": &graphql.Field{
-				Type:    graphql.NewList(giteaRepoType),
-				Resolve: s.resolveMyGiteaRepositories,
-			},
-			"giteaRepository": &graphql.Field{
-				Type: giteaRepoType,
-				Args: graphql.FieldConfigArgument{
-					"owner": &graphql.ArgumentConfig{
-						Type: graphql.NewNonNull(graphql.String),
-					},
-					"name": &graphql.ArgumentConfig{
-						Type: graphql.NewNonNull(graphql.String),
-					},
-				},
-				Resolve: s.resolveGiteaRepository,
-			},
-			"searchGiteaRepositories": &graphql.Field{
-				Type: graphql.NewList(giteaRepoType),
-				Args: graphql.FieldConfigArgument{
-					"query": &graphql.ArgumentConfig{
-						Type: graphql.String,
-					},
-					"limit": &graphql.ArgumentConfig{
-						Type: graphql.Int,
-					},
-				},
-				Resolve: s.resolveSearchGiteaRepositories,
-			},
-			"giteaRepositoryStats": &graphql.Field{
-				Type:    repoStatsType,
-				Resolve: s.resolveGiteaRepositoryStats,
 			},
 		},
 	})
@@ -286,11 +306,6 @@ func (s *Schema) GetSchema() graphql.Schema {
 	return s.schema
 }
 
-// SetGiteaService sets the Gitea service (called after initialization to avoid import cycle)
-func (s *Schema) SetGiteaService(giteaService interface{}) {
-	s.giteaService = giteaService
-}
-
 // Type Definitions
 
 func (s *Schema) defineUserType() *graphql.Object {
@@ -372,58 +387,88 @@ func (s *Schema) defineHealthType() *graphql.Object {
 	})
 }
 
-func (s *Schema) defineGiteaRepositoryType() *graphql.Object {
-	ownerType := graphql.NewObject(graphql.ObjectConfig{
-		Name: "RepositoryOwner",
-		Fields: graphql.Fields{
-			"id":        &graphql.Field{Type: graphql.Int},
-			"login":     &graphql.Field{Type: graphql.String},
-			"fullName":  &graphql.Field{Type: graphql.String},
-			"email":     &graphql.Field{Type: graphql.String},
-			"avatarUrl": &graphql.Field{Type: graphql.String},
-		},
-	})
+// Paginated Type Definitions
 
+func (s *Schema) definePaginatedUsersType(userType *graphql.Object) *graphql.Object {
 	return graphql.NewObject(graphql.ObjectConfig{
-		Name: "GiteaRepository",
+		Name: "PaginatedUsers",
 		Fields: graphql.Fields{
-			"id":            &graphql.Field{Type: graphql.Int},
-			"name":          &graphql.Field{Type: graphql.String},
-			"fullName":      &graphql.Field{Type: graphql.String},
-			"description":   &graphql.Field{Type: graphql.String},
-			"private":       &graphql.Field{Type: graphql.Boolean},
-			"fork":          &graphql.Field{Type: graphql.Boolean},
-			"htmlUrl":       &graphql.Field{Type: graphql.String},
-			"sshUrl":        &graphql.Field{Type: graphql.String},
-			"cloneUrl":      &graphql.Field{Type: graphql.String},
-			"defaultBranch": &graphql.Field{Type: graphql.String},
-			"language":      &graphql.Field{Type: graphql.String},
-			"stars":         &graphql.Field{Type: graphql.Int},
-			"forks":         &graphql.Field{Type: graphql.Int},
-			"size":          &graphql.Field{Type: graphql.Int},
-			"createdAt":     &graphql.Field{Type: graphql.String},
-			"updatedAt":     &graphql.Field{Type: graphql.String},
-			"owner":         &graphql.Field{Type: ownerType},
+			"items": &graphql.Field{
+				Type:        graphql.NewList(userType),
+				Description: "List of users",
+			},
+			"total": &graphql.Field{
+				Type:        graphql.Int,
+				Description: "Total number of users",
+			},
+			"limit": &graphql.Field{
+				Type:        graphql.Int,
+				Description: "Number of items per page",
+			},
+			"offset": &graphql.Field{
+				Type:        graphql.Int,
+				Description: "Number of items skipped",
+			},
+			"hasMore": &graphql.Field{
+				Type:        graphql.Boolean,
+				Description: "Whether there are more items",
+			},
 		},
 	})
 }
 
-func (s *Schema) defineRepositoryStatsType() *graphql.Object {
-	languageDistType := graphql.NewObject(graphql.ObjectConfig{
-		Name: "LanguageDistribution",
+func (s *Schema) definePaginatedDepartmentsType(departmentType *graphql.Object) *graphql.Object {
+	return graphql.NewObject(graphql.ObjectConfig{
+		Name: "PaginatedDepartments",
 		Fields: graphql.Fields{
-			"language": &graphql.Field{Type: graphql.String},
-			"count":    &graphql.Field{Type: graphql.Int},
+			"items": &graphql.Field{
+				Type:        graphql.NewList(departmentType),
+				Description: "List of departments",
+			},
+			"total": &graphql.Field{
+				Type:        graphql.Int,
+				Description: "Total number of departments",
+			},
+			"limit": &graphql.Field{
+				Type:        graphql.Int,
+				Description: "Number of items per page",
+			},
+			"offset": &graphql.Field{
+				Type:        graphql.Int,
+				Description: "Number of items skipped",
+			},
+			"hasMore": &graphql.Field{
+				Type:        graphql.Boolean,
+				Description: "Whether there are more items",
+			},
 		},
 	})
+}
 
+func (s *Schema) definePaginatedGroupsType(groupType *graphql.Object) *graphql.Object {
 	return graphql.NewObject(graphql.ObjectConfig{
-		Name: "RepositoryStats",
+		Name: "PaginatedGroups",
 		Fields: graphql.Fields{
-			"totalCount":   &graphql.Field{Type: graphql.Int},
-			"privateCount": &graphql.Field{Type: graphql.Int},
-			"publicCount":  &graphql.Field{Type: graphql.Int},
-			"languages":    &graphql.Field{Type: graphql.NewList(languageDistType)},
+			"items": &graphql.Field{
+				Type:        graphql.NewList(groupType),
+				Description: "List of groups",
+			},
+			"total": &graphql.Field{
+				Type:        graphql.Int,
+				Description: "Total number of groups",
+			},
+			"limit": &graphql.Field{
+				Type:        graphql.Int,
+				Description: "Number of items per page",
+			},
+			"offset": &graphql.Field{
+				Type:        graphql.Int,
+				Description: "Number of items skipped",
+			},
+			"hasMore": &graphql.Field{
+				Type:        graphql.Boolean,
+				Description: "Whether there are more items",
+			},
 		},
 	})
 }
@@ -478,9 +523,15 @@ func (s *Schema) defineSearchFilterInput() *graphql.InputObject {
 	return graphql.NewInputObject(graphql.InputObjectConfig{
 		Name: "SearchFilterInput",
 		Fields: graphql.InputObjectConfigFieldMap{
-			"department": &graphql.InputObjectFieldConfig{Type: graphql.String},
-			"mail":       &graphql.InputObjectFieldConfig{Type: graphql.String},
-			"cn":         &graphql.InputObjectFieldConfig{Type: graphql.String},
+			"uid":          &graphql.InputObjectFieldConfig{Type: graphql.String, Description: "Filter by username (UID)"},
+			"cn":           &graphql.InputObjectFieldConfig{Type: graphql.String, Description: "Filter by common name (full name)"},
+			"sn":           &graphql.InputObjectFieldConfig{Type: graphql.String, Description: "Filter by surname"},
+			"givenName":    &graphql.InputObjectFieldConfig{Type: graphql.String, Description: "Filter by given name (first name)"},
+			"mail":         &graphql.InputObjectFieldConfig{Type: graphql.String, Description: "Filter by email address"},
+			"department":   &graphql.InputObjectFieldConfig{Type: graphql.String, Description: "Filter by department name"},
+			"uidNumber":    &graphql.InputObjectFieldConfig{Type: graphql.Int, Description: "Filter by UID number"},
+			"gidNumber":    &graphql.InputObjectFieldConfig{Type: graphql.Int, Description: "Filter by GID number"},
+			"repository":   &graphql.InputObjectFieldConfig{Type: graphql.String, Description: "Filter by repository URL"},
 		},
 	})
 }
@@ -501,20 +552,79 @@ func (s *Schema) resolveUser(p graphql.ResolveParams) (interface{}, error) {
 }
 
 func (s *Schema) resolveUsers(p graphql.ResolveParams) (interface{}, error) {
+	// Get pagination parameters
+	limit := p.Args["limit"].(int)
+	offset := p.Args["offset"].(int)
+
+	// Enforce limit constraints
+	if limit > 100 {
+		limit = 100
+	}
+	if limit <= 0 {
+		limit = 10
+	}
+
+	// Parse filter
 	var filter *models.SearchFilter
 	if filterInput, ok := p.Args["filter"].(map[string]interface{}); ok {
 		filter = &models.SearchFilter{}
-		if dept, ok := filterInput["department"].(string); ok {
-			filter.Department = dept
-		}
-		if mail, ok := filterInput["mail"].(string); ok {
-			filter.Mail = mail
+		if uid, ok := filterInput["uid"].(string); ok {
+			filter.UID = uid
 		}
 		if cn, ok := filterInput["cn"].(string); ok {
 			filter.CN = cn
 		}
+		if sn, ok := filterInput["sn"].(string); ok {
+			filter.SN = sn
+		}
+		if givenName, ok := filterInput["givenName"].(string); ok {
+			filter.GivenName = givenName
+		}
+		if mail, ok := filterInput["mail"].(string); ok {
+			filter.Mail = mail
+		}
+		if dept, ok := filterInput["department"].(string); ok {
+			filter.Department = dept
+		}
+		if uidNumber, ok := filterInput["uidNumber"].(int); ok {
+			filter.UIDNumber = uidNumber
+		}
+		if gidNumber, ok := filterInput["gidNumber"].(int); ok {
+			filter.GIDNumber = gidNumber
+		}
+		if repo, ok := filterInput["repository"].(string); ok {
+			filter.Repository = repo
+		}
 	}
-	return s.ldapMgr.ListUsers(p.Context, filter)
+
+	// Get all users matching filter
+	allUsers, err := s.ldapMgr.ListUsers(p.Context, filter)
+	if err != nil {
+		s.logger.WithError(err).Error("Failed to list users")
+		return nil, fmt.Errorf("failed to list users: %w", err)
+	}
+
+	// Apply pagination
+	total := len(allUsers)
+	start := offset
+	end := offset + limit
+
+	if start > total {
+		start = total
+	}
+	if end > total {
+		end = total
+	}
+
+	paginatedUsers := allUsers[start:end]
+
+	return map[string]interface{}{
+		"items":   paginatedUsers,
+		"total":   total,
+		"limit":   limit,
+		"offset":  offset,
+		"hasMore": end < total,
+	}, nil
 }
 
 func (s *Schema) resolveDepartment(p graphql.ResolveParams) (interface{}, error) {
@@ -523,12 +633,91 @@ func (s *Schema) resolveDepartment(p graphql.ResolveParams) (interface{}, error)
 }
 
 func (s *Schema) resolveDepartments(p graphql.ResolveParams) (interface{}, error) {
-	return s.ldapMgr.ListDepartments(p.Context)
+	// Get pagination parameters
+	limit := p.Args["limit"].(int)
+	offset := p.Args["offset"].(int)
+
+	// Enforce limit constraints
+	if limit > 100 {
+		limit = 100
+	}
+	if limit <= 0 {
+		limit = 10
+	}
+
+	// Get all departments
+	allDepartments, err := s.ldapMgr.ListDepartments(p.Context)
+	if err != nil {
+		s.logger.WithError(err).Error("Failed to list departments")
+		return nil, fmt.Errorf("failed to list departments: %w", err)
+	}
+
+	// Apply pagination
+	total := len(allDepartments)
+	start := offset
+	end := offset + limit
+
+	if start > total {
+		start = total
+	}
+	if end > total {
+		end = total
+	}
+
+	paginatedDepartments := allDepartments[start:end]
+
+	return map[string]interface{}{
+		"items":   paginatedDepartments,
+		"total":   total,
+		"limit":   limit,
+		"offset":  offset,
+		"hasMore": end < total,
+	}, nil
 }
 
 func (s *Schema) resolveDepartmentUsers(p graphql.ResolveParams) (interface{}, error) {
 	department := p.Args["department"].(string)
-	return s.ldapMgr.GetUsersByDepartment(p.Context, department)
+
+	// Get pagination parameters
+	limit := p.Args["limit"].(int)
+	offset := p.Args["offset"].(int)
+
+	// Enforce limit constraints
+	if limit > 100 {
+		limit = 100
+	}
+	if limit <= 0 {
+		limit = 10
+	}
+
+	// Get all users in department
+	allUsers, err := s.ldapMgr.GetUsersByDepartment(p.Context, department)
+	if err != nil {
+		s.logger.WithError(err).Error("Failed to get department users")
+		return nil, fmt.Errorf("failed to get department users: %w", err)
+	}
+
+	// Apply pagination
+	total := len(allUsers)
+	start := offset
+	end := offset + limit
+
+	if start > total {
+		start = total
+	}
+	if end > total {
+		end = total
+	}
+
+	paginatedUsers := allUsers[start:end]
+
+	return map[string]interface{}{
+		"items":   paginatedUsers,
+		"total":   total,
+		"limit":   limit,
+		"offset":  offset,
+		"hasMore": end < total,
+	}, nil
 }
 
 func (s *Schema) resolveGroup(p graphql.ResolveParams) (interface{}, error) {
@@ -766,284 +955,45 @@ func (s *Schema) ExtractUserFromToken(tokenString string) (*models.User, error) 
 	return s.ldapMgr.GetUser(ctx, claims.UID)
 }
 
-// Gitea Repository Resolvers
+func (s *Schema) resolveGroups(p graphql.ResolveParams) (interface{}, error) {
+	// Get pagination parameters
+	limit := p.Args["limit"].(int)
+	offset := p.Args["offset"].(int)
 
-func (s *Schema) resolveMyGiteaRepositories(p graphql.ResolveParams) (interface{}, error) {
-	user, ok := p.Context.Value("user").(*models.User)
-	if !ok {
-		return nil, fmt.Errorf("unauthorized")
+	// Enforce limit constraints
+	if limit > 100 {
+		limit = 100
+	}
+	if limit <= 0 {
+		limit = 10
 	}
 
-	if s.giteaService == nil {
-		return nil, fmt.Errorf("gitea service not initialized")
-	}
-
-	// Type assert to the actual service type
-	type GiteaService interface {
-		GetUserRepositories(ctx context.Context, user *models.User) (interface{}, error)
-	}
-
-	service, ok := s.giteaService.(GiteaService)
-	if !ok {
-		return nil, fmt.Errorf("invalid gitea service type")
-	}
-
-	repos, err := service.GetUserRepositories(p.Context, user)
+	// Get all groups
+	allGroups, err := s.ldapMgr.ListGroups(p.Context)
 	if err != nil {
-		s.logger.WithError(err).Error("Failed to get user repositories")
-		return nil, fmt.Errorf("failed to get repositories: %w", err)
+		s.logger.WithError(err).Error("Failed to list groups")
+		return nil, fmt.Errorf("failed to list groups: %w", err)
 	}
 
-	return s.convertReposToModels(repos), nil
-}
+	// Apply pagination
+	total := len(allGroups)
+	start := offset
+	end := offset + limit
 
-func (s *Schema) resolveGiteaRepository(p graphql.ResolveParams) (interface{}, error) {
-	user, ok := p.Context.Value("user").(*models.User)
-	if !ok {
-		return nil, fmt.Errorf("unauthorized")
+	if start > total {
+		start = total
+	}
+	if end > total {
+		end = total
 	}
 
-	owner := p.Args["owner"].(string)
-	name := p.Args["name"].(string)
+	paginatedGroups := allGroups[start:end]
 
-	if s.giteaService == nil {
-		return nil, fmt.Errorf("gitea service not initialized")
-	}
-
-	type GiteaService interface {
-		GetRepository(ctx context.Context, user *models.User, owner, name string) (interface{}, error)
-	}
-
-	service, ok := s.giteaService.(GiteaService)
-	if !ok {
-		return nil, fmt.Errorf("invalid gitea service type")
-	}
-
-	repo, err := service.GetRepository(p.Context, user, owner, name)
-	if err != nil {
-		s.logger.WithError(err).Error("Failed to get repository")
-		return nil, fmt.Errorf("failed to get repository: %w", err)
-	}
-
-	return s.convertRepoToModel(repo), nil
-}
-
-func (s *Schema) resolveSearchGiteaRepositories(p graphql.ResolveParams) (interface{}, error) {
-	user, ok := p.Context.Value("user").(*models.User)
-	if !ok {
-		return nil, fmt.Errorf("unauthorized")
-	}
-
-	query := ""
-	if q, ok := p.Args["query"].(string); ok {
-		query = q
-	}
-
-	limit := 50
-	if l, ok := p.Args["limit"].(int); ok {
-		limit = l
-	}
-
-	if s.giteaService == nil {
-		return nil, fmt.Errorf("gitea service not initialized")
-	}
-
-	type GiteaService interface {
-		SearchUserRepositories(ctx context.Context, user *models.User, query string, limit int) (interface{}, error)
-	}
-
-	service, ok := s.giteaService.(GiteaService)
-	if !ok {
-		return nil, fmt.Errorf("invalid gitea service type")
-	}
-
-	repos, err := service.SearchUserRepositories(p.Context, user, query, limit)
-	if err != nil {
-		s.logger.WithError(err).Error("Failed to search repositories")
-		return nil, fmt.Errorf("failed to search repositories: %w", err)
-	}
-
-	return s.convertReposToModels(repos), nil
-}
-
-func (s *Schema) resolveGiteaRepositoryStats(p graphql.ResolveParams) (interface{}, error) {
-	user, ok := p.Context.Value("user").(*models.User)
-	if !ok {
-		return nil, fmt.Errorf("unauthorized")
-	}
-
-	if s.giteaService == nil {
-		return nil, fmt.Errorf("gitea service not initialized")
-	}
-
-	type GiteaService interface {
-		GetRepositoryStats(ctx context.Context, user *models.User) (interface{}, error)
-	}
-
-	service, ok := s.giteaService.(GiteaService)
-	if !ok {
-		return nil, fmt.Errorf("invalid gitea service type")
-	}
-
-	stats, err := service.GetRepositoryStats(p.Context, user)
-	if err != nil {
-		s.logger.WithError(err).Error("Failed to get repository stats")
-		return nil, fmt.Errorf("failed to get stats: %w", err)
-	}
-
-	return s.convertStatsToModel(stats), nil
-}
-
-// Helper functions to convert Gitea types to GraphQL models
-
-func (s *Schema) convertRepoToModel(repo interface{}) *models.GiteaRepository {
-	type Repository struct {
-		ID            int64
-		Name          string
-		FullName      string
-		Description   string
-		Private       bool
-		Fork          bool
-		HTMLURL       string
-		SSHURL        string
-		CloneURL      string
-		DefaultBranch string
-		Language      string
-		Stars         int
-		Forks         int
-		Size          int
-		CreatedAt     time.Time
-		UpdatedAt     time.Time
-		Owner         struct {
-			ID        int64
-			Login     string
-			FullName  string
-			Email     string
-			AvatarURL string
-		}
-	}
-
-	r, ok := repo.(*Repository)
-	if !ok {
-		return nil
-	}
-
-	return &models.GiteaRepository{
-		ID:            r.ID,
-		Name:          r.Name,
-		FullName:      r.FullName,
-		Description:   r.Description,
-		Private:       r.Private,
-		Fork:          r.Fork,
-		HTMLURL:       r.HTMLURL,
-		SSHURL:        r.SSHURL,
-		CloneURL:      r.CloneURL,
-		DefaultBranch: r.DefaultBranch,
-		Language:      r.Language,
-		Stars:         r.Stars,
-		Forks:         r.Forks,
-		Size:          r.Size,
-		CreatedAt:     r.CreatedAt.Format(time.RFC3339),
-		UpdatedAt:     r.UpdatedAt.Format(time.RFC3339),
-		Owner: models.RepositoryOwner{
-			ID:        r.Owner.ID,
-			Login:     r.Owner.Login,
-			FullName:  r.Owner.FullName,
-			Email:     r.Owner.Email,
-			AvatarURL: r.Owner.AvatarURL,
-		},
-	}
-}
-
-func (s *Schema) convertReposToModels(repos interface{}) []*models.GiteaRepository {
-	type Repository struct {
-		ID            int64
-		Name          string
-		FullName      string
-		Description   string
-		Private       bool
-		Fork          bool
-		HTMLURL       string
-		SSHURL        string
-		CloneURL      string
-		DefaultBranch string
-		Language      string
-		Stars         int
-		Forks         int
-		Size          int
-		CreatedAt     time.Time
-		UpdatedAt     time.Time
-		Owner         struct {
-			ID        int64
-			Login     string
-			FullName  string
-			Email     string
-			AvatarURL string
-		}
-	}
-
-	repoList, ok := repos.([]*Repository)
-	if !ok {
-		return []*models.GiteaRepository{}
-	}
-
-	result := make([]*models.GiteaRepository, len(repoList))
-	for i, r := range repoList {
-		result[i] = &models.GiteaRepository{
-			ID:            r.ID,
-			Name:          r.Name,
-			FullName:      r.FullName,
-			Description:   r.Description,
-			Private:       r.Private,
-			Fork:          r.Fork,
-			HTMLURL:       r.HTMLURL,
-			SSHURL:        r.SSHURL,
-			CloneURL:      r.CloneURL,
-			DefaultBranch: r.DefaultBranch,
-			Language:      r.Language,
-			Stars:         r.Stars,
-			Forks:         r.Forks,
-			Size:          r.Size,
-			CreatedAt:     r.CreatedAt.Format(time.RFC3339),
-			UpdatedAt:     r.UpdatedAt.Format(time.RFC3339),
-			Owner: models.RepositoryOwner{
-				ID:        r.Owner.ID,
-				Login:     r.Owner.Login,
-				FullName:  r.Owner.FullName,
-				Email:     r.Owner.Email,
-				AvatarURL: r.Owner.AvatarURL,
-			},
-		}
-	}
-
-	return result
-}
-
-func (s *Schema) convertStatsToModel(stats interface{}) *models.RepositoryStats {
-	type Stats struct {
-		TotalCount   int
-		PrivateCount int
-		PublicCount  int
-		Languages    map[string]int
-	}
-
-	st, ok := stats.(*Stats)
-	if !ok {
-		return nil
-	}
-
-	languages := make([]models.LanguageDistribution, 0, len(st.Languages))
-	for lang, count := range st.Languages {
-		languages = append(languages, models.LanguageDistribution{
-			Language: lang,
-			Count:    count,
-		})
-	}
-
-	return &models.RepositoryStats{
-		TotalCount:   st.TotalCount,
-		PrivateCount: st.PrivateCount,
-		PublicCount:  st.PublicCount,
-		Languages:    languages,
-	}
+	return map[string]interface{}{
+		"items":   paginatedGroups,
+		"total":   total,
+		"limit":   limit,
+		"offset":  offset,
+		"hasMore": end < total,
+	}, nil
 }
