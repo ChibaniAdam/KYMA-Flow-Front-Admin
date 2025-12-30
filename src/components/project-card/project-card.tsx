@@ -1,3 +1,4 @@
+import { useState, useRef, useEffect } from "react";
 import { Tooltip } from "../tooltip/tooltip";
 import "./project-card.css";
 import GithubIcon from "../../assets/github-icon.svg";
@@ -13,6 +14,8 @@ interface ProjectCardProps {
   readonly status?: string;
   readonly stars?: number;
   readonly forks?: number;
+  readonly onEdit?: () => void;
+  readonly onDelete?: () => void;
 }
 
 export function ProjectCard({
@@ -25,12 +28,27 @@ export function ProjectCard({
   status = "◉",
   stars,
   forks,
+  onEdit,
+  onDelete,
 }: ProjectCardProps) {
+  const [menuOpen, setMenuOpen] = useState(false);
+  const projectMenuRef = useRef<HTMLDivElement | null>(null);
+
+  // Close menu if clicked outside
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (projectMenuRef.current && !projectMenuRef.current.contains(e.target as Node)) {
+        setMenuOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
   return (
     <div className="project-card">
       <div className="project-left">
         <div className="project-icon">{icon}</div>
-
         <div className="project-meta">
           <h3 className="project-title">{title}</h3>
 
@@ -60,7 +78,7 @@ export function ProjectCard({
         </div>
       </div>
 
-      <div className="project-right">
+      <div className="project-right" ref={projectMenuRef}>
         {(stars !== undefined || forks !== undefined) && (
           <div className="project-stats">
             {stars !== undefined && <span>⭐ {stars}</span>}
@@ -69,7 +87,18 @@ export function ProjectCard({
         )}
 
         <div className="project-status">{status}</div>
-        <div className="project-menu">⋮</div>
+
+        {(onEdit || onDelete) && (
+          <div className="project-menu" onClick={() => setMenuOpen(prev => !prev)}>
+            ⋮
+            {menuOpen && (
+              <div className="project-dropdown">
+                {onEdit && <div className="project-dropdown-item" onClick={() => { setMenuOpen(false); onEdit(); }}>Edit</div>}
+                {onDelete && <div className="project-dropdown-item" onClick={() => { setMenuOpen(false); onDelete(); }}>Delete</div>}
+              </div>
+            )}
+          </div>
+        )}
       </div>
     </div>
   );

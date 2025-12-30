@@ -17,6 +17,8 @@ import { FilterBar } from "../../components/filter-bar/filter-bar";
 import { DataTable } from "../../components/data-table/data-table";
 import { useDebounce } from "../../utils/useDebounce";
 import { useDelayedLoading } from "../../utils/useDelayedLoading";
+import { Modal } from "../../components/modal/modal";
+import { getGraphQLErrorMessage } from "../../utils/getGraphQLErrorMessage";
 
 export const UsersDashboard = () => {
   const [usersPage, setUsersPage] = useState<UserPage | null>(null);
@@ -28,6 +30,8 @@ export const UsersDashboard = () => {
   const showSkeleton = useDelayedLoading(loading);
   const [showModal, setShowModal] = useState(false);
   const [editingUser, setEditingUser] = useState<User | null>(null);
+  const [submitError, setSubmitError] = useState<string | null>(null);
+  const [submitting, setSubmitting] = useState(false);
 
   const [deleteUserId, setDeleteUserId] = useState<string | null>(null);
   const [deleting, setDeleting] = useState(false);
@@ -118,13 +122,27 @@ const fetchUsers = async () => {
     setShowModal(true);
   };
 
-  const handleEditClick = (user: User) => {
-    setEditingUser(user);
-    setFormData(user);
-    setShowModal(true);
+const handleEditClick = (user: User) => {
+  setEditingUser(user);
+
+  const updateInput: UpdateUserInput = {
+    uid: user.uid,
+    cn: user.cn,
+    sn: user.sn,
+    givenName: user.givenName,
+    mail: user.mail,
+    department: user.department,
+    repositories: user.repositories,
   };
 
+  setFormData(updateInput);
+  setShowModal(true);
+};
+
+
   const handleSubmit = async () => {
+    setSubmitError(null);
+    setSubmitting(true);
     try {
       if (editingUser)
         await updateUser(formData as UpdateUserInput);
@@ -134,8 +152,10 @@ const fetchUsers = async () => {
       setShowModal(false);
       fetchUsers();
     } catch (err) {
-      
-    }
+    setSubmitError(getGraphQLErrorMessage(err));
+  } finally {
+    setSubmitting(false);
+  }
   };
 
 
@@ -224,16 +244,33 @@ const fetchUsers = async () => {
 
 </div>
 
-      {showModal && (
-        <UserForm
-          editingUser={editingUser}
-          formData={formData}
-          setFormData={setFormData}
-          onSubmit={handleSubmit}
-          departments={departments}
-          onClose={() => setShowModal(false)}
-        />
-      )}
+{showModal && (
+  <Modal
+  title={editingUser ? "Update User" : "Create User"}
+  subtitle={editingUser ? "Modify the user details below." : "Fill in the information below to add a new user."}
+  onClose={() => setShowModal(false)}
+  footer={
+    <>
+      <button className="cancel-btn" onClick={() => setShowModal(false)} disabled={submitting}>
+        Cancel
+      </button>
+      <button className="submit-btn" onClick={handleSubmit} disabled={submitting}>
+        {submitting ? "Saving..." : editingUser ? "Update" : "Create"}
+      </button>
+    </>
+  }
+>
+
+  <UserForm
+    editingUser={editingUser}
+    formData={formData}
+    setFormData={setFormData}
+    departments={departments}
+  />
+</Modal>
+
+)}
+
       {deleteUserId && (
         <ConfirmationModal
           message="Are you sure you want to delete this user? This action cannot be undone."

@@ -44,7 +44,7 @@ export async function getRepository(
   return graphqlRequest<
     { getRepository: Repository },
     { owner: string; name: string }
-  >(query, { owner, name }).then(res => res.getRepository);
+  >(query, { owner, name }, true).then(res => res.getRepository);
 }
 
 export async function listRepositories(
@@ -200,7 +200,7 @@ export async function getRepositoryStats(): Promise<RepositoryStats> {
     }
   `;
 
-  return graphqlRequest<{ repositoryStats: RepositoryStats }>(query).then(
+  return graphqlRequest<{ repositoryStats: RepositoryStats }>(query,{},true).then(
     res => res.repositoryStats
   );
 }
@@ -237,7 +237,7 @@ export async function updateRepository(
   return graphqlRequest<
     { updateRepository: Repository },
     { owner: string; name: string }
-  >(mutation, { owner, name }).then(res => res.updateRepository);
+  >(mutation, { owner, name }, true).then(res => res.updateRepository);
 }
 
 export async function deleteRepository(
@@ -253,5 +253,5 @@ export async function deleteRepository(
   return graphqlRequest<
     { deleteRepository: boolean },
     { owner: string; name: string }
-  >(mutation, { owner, name }).then(res => res.deleteRepository);
+  >(mutation, { owner, name }, true).then(res => res.deleteRepository);
 }

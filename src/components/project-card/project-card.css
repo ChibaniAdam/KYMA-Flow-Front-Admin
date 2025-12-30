@@ -1,4 +1,5 @@
 .project-card {
+  position: relative;
   background: var(--bg-black-200);
   border: 1px solid var(--bg-black-400);
   border-radius: 12px;
@@ -76,7 +77,6 @@
 .project-menu {
   cursor: pointer;
   font-size: 20px;
-  opacity: 0.6;
 }
 
 @media (max-width: 480px) {
@@ -89,4 +89,28 @@
   .project-left {
     flex-wrap: wrap;
   }
+}
+.project-dropdown {
+  position: absolute;
+  right: 0;
+  top: 24px;
+  background: var(--bg-black-200);
+  border: 1px solid var(--bg-black-400);
+  border-radius: 8px;
+  padding: 0.25rem 0;
+  z-index: 10;
+  min-width: 100px;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+}
+
+.project-dropdown-item {
+  padding: 0.5rem 0.75rem;
+  cursor: pointer;
+  font-size: 14px;
+  color: white;
+  transition: background-color 0.2s;
+}
+
+.project-dropdown-item:hover {
+  background-color: var(--dark-purple-500);
 }
