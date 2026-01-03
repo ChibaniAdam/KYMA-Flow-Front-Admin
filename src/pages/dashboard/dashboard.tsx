@@ -35,7 +35,9 @@ const Dashboard = () => {
       <RepoList onSelect={(id) => setFirstSelected(id)} />
     </div>
 
-    <div></div>
+    <div>
+      <DepartmentList disabled={!firstSelected} />
+    </div>
 
     <div>
       <DepartmentList disabled={!firstSelected} />
